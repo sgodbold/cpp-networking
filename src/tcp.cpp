@@ -7,7 +7,9 @@
 using boost::asio::const_buffer; using boost::asio::streambuf;
 using boost::system::error_code; using boost::system::system_error;
 
-net::tcp::tcp(const std::string& host, const std::string& service)
+using async_net::Tcp;
+
+Tcp::Tcp(const std::string& host, const std::string& service)
     : socket(io_service)
 {
     // Get a list of endpoints corresponding to the server name.
@@ -27,44 +29,44 @@ net::tcp::tcp(const std::string& host, const std::string& service)
     }
 }
 
-void net::tcp::send(const_buffer& req)
+Tcp::~Tcp()
 {
-    boost::asio::write(socket, req);
+    // Shutdown before closing for portable graceful closures.
+    socket.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
+    socket.shutdown(boost::asio::ip::tcp::socket::shutdown_receive);
+    socket.close();
 }
 
-void net::tcp::send(std::vector<const_buffer> req)
+// Send buffer contents to the connection. Calls h with any errors
+// once complete.
+void Tcp::send(const_buffer& req, Send_Handler h)
 {
-    boost::asio::write(socket, req);
+    send({req}, h);
 }
 
-const_buffer net::tcp::receive()
+// Send sequence of buffers contents to the connection. Calls h with
+// any errors once complete.
+void Tcp::send(std::vector<const_buffer>& req, Send_Handler h)
 {
-    streambuf response;
-    error_code error;
-    boost::asio::read(socket, response, error);
-
-    // EOF error is good; everything else is bad.
-    if (error and error != boost::asio::error::eof) {
-        throw system_error(error);
-    }
-
-    return response.data();
+    boost::asio::async_write(socket, req,
+        [h](error_code& error, std::size_t len)
+        { h(error); }
+    );
 }
 
 // Receive data from connection. Calls h with a response
 // buffer on success and throws on error.
-void net::tcp::async_receive(Receive_Handler h)
+void Tcp::receive(Receive_Handler h)
 {
     streambuf response;
-
     boost::asio::async_read(socket, response,
         [h, &response](error_code& error, std::size_t len)
         {
-            // EOF error is good; everything else is bad.
-            if(error and error != boost::asio::error::eof) {
-                throw system_error(error);
+            // EOF error is good so clear it before calling handler.
+            if(error == boost::asio::error::eof) {
+                error.clear();
             }
-            h(response.data());
+            h(error, response.data());
         }
     );
 }

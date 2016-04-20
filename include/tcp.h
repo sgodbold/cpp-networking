@@ -5,25 +5,27 @@
 #include <string>
 #include <vector>
 
-namespace net {
+namespace async_net {
 
-class tcp {
+class Tcp {
 public:
-    using Receive_Handler = void(*)(boost::asio::const_buffer response);
+    using Receive_Handler = void(*)(boost::system::error_code& errror,
+                                    boost::asio::const_buffer response);
+    using Send_Handler = void(*)(boost::system::error_code& error);
 
-    tcp(const std::string& host, const std::string& service);
+    Tcp(const std::string& host, const std::string& service);
+    ~Tcp();
 
-    void send(boost::asio::const_buffer& req);
-    void send(std::vector<boost::asio::const_buffer> req);
+    void send(boost::asio::const_buffer& req, Send_Handler);
+    void send(std::vector<boost::asio::const_buffer>& req, Send_Handler);
 
-    boost::asio::const_buffer receive();
-    void async_receive(Receive_Handler h);
+    void receive(Receive_Handler);
 
 private:
     boost::asio::io_service io_service;
     boost::asio::ip::tcp::socket socket;
 
-}; // tcp
+}; // Tcp
 } // net
 
 #endif
