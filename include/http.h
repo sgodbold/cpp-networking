@@ -8,7 +8,7 @@
 #include <string>
 
 // Settings
-const char* protocol_ = "HTTP/1.1";
+const char* http_version_ = "HTTP/1.1";
 
 namespace async_net {
 
@@ -16,30 +16,34 @@ class Http {
 public:
     struct Http_Response;
 
-    using Http_Handler = void(*)(boost::system::error_code, Http_Response);
+    using Http_Handler_t = std::function<void(boost::system::error_code, Http_Response)>;
 
-    Http(const std::string& host);
+    enum class Method_t {
+        GET, POST, HEAD, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH
+    };
 
-    void request(const std::string& method, const std::string& path,
-                 boost::asio::const_buffer& body, Http_Handler h);
+    explicit Http(const std::string& host);
 
-    void get(const std::string& path, Http_Handler);
+    void request(Method_t method, const std::string& path,
+                 boost::asio::const_buffer& body, Http_Handler_t);
 
-    void post(const std::string& path, boost::asio::const_buffer& body, Http_Handler);
+    void get(const std::string& path, Http_Handler_t);
 
-    void head(const std::string& path, Http_Handler);
+    void post(const std::string& path, boost::asio::const_buffer& body, Http_Handler_t);
 
-    void put(const std::string& path, boost::asio::const_buffer& body, Http_Handler);
+    void head(const std::string& path, Http_Handler_t);
 
-    void delet(const std::string& path, Http_Handler);
+    void put(const std::string& path, boost::asio::const_buffer& body, Http_Handler_t);
 
-    void trace(const std::string& path, Http_Handler);
+    void delet(const std::string& path, Http_Handler_t);
 
-    void options(const std::string& path, Http_Handler);
+    void trace(const std::string& path, Http_Handler_t);
 
-    void connect(const std::string& path, boost::asio::const_buffer& body, Http_Handler);
+    void options(const std::string& path, Http_Handler_t);
 
-    void patch(const std::string& path, boost::asio::const_buffer& body, Http_Handler);
+    void connect(const std::string& path, boost::asio::const_buffer& body, Http_Handler_t);
+
+    void patch(const std::string& path, boost::asio::const_buffer& body, Http_Handler_t);
 
     // Setters used to construct a request
     void add_header(const std::string& name, const std::string& value)
@@ -55,15 +59,16 @@ public:
     };
 
 private:
-    tcp connection;
+    Tcp connection;
     const std::string& host;
-    std::string protocol;
+    std::string http_version;
     std::map<std::string, std::string> headers;
 
     boost::asio::const_buffer make_request(const std::string& method, const std::string& path);
 
-    void make_response_handle(boost::system::error_code& error, boost::asio::const_buffer);
     Http_Response make_response(boost::asio::const_buffer data);
+
+    std::string method_to_str(Method_t m);
 
 }; // class Http
 } // namespace async_net

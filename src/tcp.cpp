@@ -39,14 +39,17 @@ Tcp::~Tcp()
 
 // Send buffer contents to the connection. Calls h with any errors
 // once complete.
-void Tcp::send(const_buffer& req, Send_Handler h)
+void Tcp::send(const_buffer& req, Send_Handler_t h)
 {
-    send({req}, h);
+    boost::asio::async_write(socket, req,
+        [h](error_code& error, std::size_t len)
+        { h(error); }
+    );
 }
 
 // Send sequence of buffers contents to the connection. Calls h with
 // any errors once complete.
-void Tcp::send(std::vector<const_buffer>& req, Send_Handler h)
+void Tcp::send(std::vector<const_buffer>& req, Send_Handler_t h)
 {
     boost::asio::async_write(socket, req,
         [h](error_code& error, std::size_t len)
@@ -56,14 +59,14 @@ void Tcp::send(std::vector<const_buffer>& req, Send_Handler h)
 
 // Receive data from connection. Calls h with a response
 // buffer on success and throws on error.
-void Tcp::receive(Receive_Handler h)
+void Tcp::receive(Receive_Handler_t h)
 {
     streambuf response;
     boost::asio::async_read(socket, response,
         [h, &response](error_code& error, std::size_t len)
         {
             // EOF error is good so clear it before calling handler.
-            if(error == boost::asio::error::eof) {
+            if (error == boost::asio::error::eof) {
                 error.clear();
             }
             h(error, response.data());

@@ -9,17 +9,18 @@ namespace async_net {
 
 class Tcp {
 public:
-    using Receive_Handler = void(*)(boost::system::error_code& errror,
-                                    boost::asio::const_buffer response);
-    using Send_Handler = void(*)(boost::system::error_code& error);
+    using Receive_Handler_t = std::function<void(boost::system::error_code&,
+                                                 boost::asio::const_buffer response)>;
+    using Send_Handler_t = std::function<void(boost::system::error_code&)>;
 
-    Tcp(const std::string& host, const std::string& service);
+    explicit Tcp(const std::string& host, const std::string& service);
+
     ~Tcp();
 
-    void send(boost::asio::const_buffer& req, Send_Handler);
-    void send(std::vector<boost::asio::const_buffer>& req, Send_Handler);
+    void send(boost::asio::const_buffer& req, Send_Handler_t);
+    void send(std::vector<boost::asio::const_buffer>& req, Send_Handler_t);
 
-    void receive(Receive_Handler);
+    void receive(Receive_Handler_t);
 
 private:
     boost::asio::io_service io_service;
