@@ -17,14 +17,11 @@ public:
     struct Http_Response;
 
     using Http_Handler_t = std::function<void(boost::system::error_code, Http_Response)>;
-
-    enum class Method_t {
-        GET, POST, HEAD, PUT, DELETE, TRACE, OPTIONS, CONNECT, PATCH
-    };
+    using Headers_t = std::map<std::string, std::string>;
 
     explicit Http(const std::string& host);
 
-    void request(Method_t method, const std::string& path,
+    void request(const std::string& method, const std::string& path,
                  boost::asio::const_buffer& body, Http_Handler_t);
 
     void get(const std::string& path, Http_Handler_t);
@@ -51,24 +48,21 @@ public:
     void remove_header(const std::string& name)
         { headers.erase(name); }
 
-    class Http_Response {
-        // XXX add helpers
+    struct Http_Response {
         std::string status;
         std::map<std::string, std::string> headers;
-        boost::asio::mutable_buffer body;
+        boost::asio::const_buffer body;
     };
 
 private:
     Tcp connection;
     const std::string& host;
     std::string http_version;
-    std::map<std::string, std::string> headers;
+    Headers_t headers;
 
     boost::asio::const_buffer make_request(const std::string& method, const std::string& path);
 
     Http_Response make_response(boost::asio::const_buffer data);
-
-    std::string method_to_str(Method_t m);
 
 }; // class Http
 } // namespace async_net

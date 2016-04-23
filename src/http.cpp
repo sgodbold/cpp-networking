@@ -1,17 +1,25 @@
 #include "http.h"
 
 #include <boost/asio.hpp>
+#include <boost/algorithm/string.hpp>
+#include <istream>
+#include <map>
 #include <ostream>
 #include <string>
 #include <vector>
 
 using std::string;
+using std::size_t;
 
 using boost::asio::const_buffer; using boost::asio::streambuf;
 using boost::system::error_code; using boost::system::system_error;
 using boost::asio::read_until;
 
 using async_net::Http;
+
+// Given a buffer with HTTP response data this returns a single line
+// stipped of the ending \r\n.
+static string get_response_line(const_buffer& data);
 
 // Use same buffer for sending requests without a body.
 static const_buffer no_body;
@@ -24,10 +32,10 @@ Http::Http(const string& host_)
     add_header("Connection", "close");
 }
 
-void Http::request(Method_t method, const std::string& path, const_buffer& body, Http_Handler_t h)
+void Http::request(const std::string& method, const std::string& path,
+                   const_buffer& body, Http_Handler_t h)
 {
-    string method_str = method_to_str(method);
-    const_buffer req = make_request(method_str, path);
+    const_buffer req = make_request(method, path);
 
     std::vector<const_buffer> req_sequence;
     req_sequence.push_back(req);
@@ -54,50 +62,50 @@ void Http::request(Method_t method, const std::string& path, const_buffer& body,
 
 void Http::get(const string& path, Http_Handler_t h)
 {
-    request(Method_t::GET, path, no_body, h);
+    request("GET", path, no_body, h);
     // XXX cache response?
 }
 
 void Http::head(const string& path, Http_Handler_t h)
 {
-    request(Method_t::HEAD, path, no_body, h);
+    request("HEAD", path, no_body, h);
     // XXX cache response?
 }
 
 void Http::post(const string& path, const_buffer& body, Http_Handler_t h)
 {
-    request(Method_t::POST, path, body, h);
+    request("POST", path, body, h);
     // XXX cache response?
 }
 
 void Http::put(const string& path, const_buffer& body, Http_Handler_t h)
 {
-    request(Method_t::PUT, path, body, h);
+    request("PUT", path, body, h);
 }
 
 void Http::delet(const string& path, Http_Handler_t h)
 {
-    request(Method_t::DELETE, path, no_body, h);
+    request("DELETE", path, no_body, h);
 }
 
 void Http::trace(const string& path, Http_Handler_t h)
 {
-    request(Method_t::TRACE, path, no_body, h);
+    request("TRACE", path, no_body, h);
 }
 
 void Http::options(const string& path, Http_Handler_t h)
 {
-    request(Method_t::OPTIONS, path, no_body, h);
+    request("OPTIONS", path, no_body, h);
 }
 
 void Http::connect(const string& path, const_buffer& body, Http_Handler_t h)
 {
-    request(Method_t::CONNECT, path, body, h);
+    request("CONNECT", path, body, h);
 }
 
 void Http::patch(const string& path, const_buffer& body, Http_Handler_t h)
 {
-    request(Method_t::PATCH, path, body, h);
+    request("PATCH", path, body, h);
     // XXX cache response?
 }
 
@@ -125,41 +133,52 @@ const_buffer Http::make_request(const std::string& method, const std::string& pa
 
 Http::Http_Response Http::make_response(boost::asio::const_buffer data)
 {
-    Http_Response response;
+    Http_Response res;
 
     // Status
-    streambuf b;
-    read_until(data, b, "\r\n");
-
-    // XXX handling errors??
+    res.status = get_response_line(data);
 
     // Headers
+    string line;
+    while (true) {
+        line = get_response_line(data);
+        if (line.empty()) {
+            break;
+        }
+        std::vector<string> tokens;
+        boost::split(tokens, line, boost::is_any_of(":"));
+
+        // XXX what is the line isn't a valid header?
+
+        boost::trim(tokens[0]);
+        boost::trim(tokens[1]);
+
+        res.headers[tokens[0]] = tokens[1];
+    }
 
     // Body
+    res.body = data;
 
-    return response;
+    return res;
 }
 
-string Http::method_to_str(Method_t m)
+/* Helpers */
+
+// Given a buffer with HTTP response data this returns a single line
+// stipped of the ending \r\n.
+string get_response_line(const_buffer& data)
 {
-    switch(m) {
-        case Method_t::GET:
-            return "GET";
-        case Method_t::POST:
-            return "POST";
-        case Method_t::HEAD:
-            return "HEAD";
-        case Method_t::PUT:
-            return "PUT";
-        case Method_t::DELETE:
-            return "DELETE";
-        case Method_t::TRACE:
-            return "TRACE";
-        case Method_t::OPTIONS:
-            return "OPTIONS";
-        case Method_t::CONNECT:
-            return "CONNECT";
-        case Method_t::PATCH:
-            return "PATCH";
-    };
+    streambuf buf;
+    size_t n = read_until(data, buf, "\r\n");
+    buf.commit(n);
+    std::istream is(&buf);
+
+    string result;
+    is >> result;
+
+    // strip the ending \r\n
+    result.pop_back();
+    result.pop_back();
+
+    return result;
 }
