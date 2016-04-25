@@ -1,29 +1,33 @@
 #include "http.h"
 
-#include <boost/asio.hpp>
-#include <boost/algorithm/string.hpp>
+#include <future>
 #include <istream>
 #include <map>
 #include <ostream>
 #include <string>
 #include <vector>
 
-using std::string;
-using std::size_t;
+#include "boost_definitions.h"
+#include <boost/asio.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/thread/future.hpp>
 
 using boost::asio::const_buffer; using boost::asio::streambuf;
-using boost::system::error_code; using boost::system::system_error;
 using boost::asio::read_until;
+using boost::future;
+using boost::system::error_code; using boost::system::system_error;
 
-using async_net::Http;
+using std::string;
+using std::vector;
+
+using net::Http;
 
 // Given a buffer with HTTP response data this returns a single line
 // stipped of the ending \r\n.
 static string get_response_line(const_buffer& data);
 
-// Use same buffer for sending requests without a body.
+// Use same buffer for empty contents in requests and responses.
 static const_buffer no_body;
-static Http::Http_Response no_response;
 
 Http::Http(const string& host_)
     : connection(host_, "http"), host(host_), http_version(http_version_)
@@ -32,8 +36,11 @@ Http::Http(const string& host_)
     add_header("Connection", "close");
 }
 
-void Http::request(const std::string& method, const std::string& path,
-                   const_buffer& body, Http_Handler_t h)
+// XXX now that sends / receives are asynchronous all requests / responses must be atomically
+// paired up. 1 thread can't process multiple responses from the same socket. Maybe have a 
+// queue for 1 socket or connect a new socket for every request?
+future<Http::Http_Response> Http::request(const std::string& method, const std::string& path,
+                                          const_buffer& body)
 {
     const_buffer req = make_request(method, path);
 
@@ -41,71 +48,56 @@ void Http::request(const std::string& method, const std::string& path,
     req_sequence.push_back(req);
     req_sequence.push_back(body);
 
-    connection.send(req_sequence, [this, h](boost::system::error_code& error)
-    {
-        // There might not be anything to receive XXX?
-        // XXX would this be a bug where a send errors, but there's still
-        // data in the receive buffer that isn't retreived until the next
-        // call?
-        if(error) {
-            h(error, no_response);
-            return;
-        }
-
-        connection.receive([this, h](error_code& error, const_buffer data)
-        {
-            Http_Response res = (error) ? no_response : make_response(data);
-            h(error, res);
-        });
-    });
+    // Send request and receive response
+    return promise_response(req_sequence);
 }
 
-void Http::get(const string& path, Http_Handler_t h)
+future<Http::Http_Response> Http::get(const string& path)
 {
-    request("GET", path, no_body, h);
+    return request("GET", path, no_body);
     // XXX cache response?
 }
 
-void Http::head(const string& path, Http_Handler_t h)
+future<Http::Http_Response> Http::head(const string& path)
 {
-    request("HEAD", path, no_body, h);
+    return request("HEAD", path, no_body);
     // XXX cache response?
 }
 
-void Http::post(const string& path, const_buffer& body, Http_Handler_t h)
+future<Http::Http_Response> Http::post(const string& path, const_buffer& body)
 {
-    request("POST", path, body, h);
+    return request("POST", path, body);
     // XXX cache response?
 }
 
-void Http::put(const string& path, const_buffer& body, Http_Handler_t h)
+future<Http::Http_Response> Http::put(const string& path, const_buffer& body)
 {
-    request("PUT", path, body, h);
+    return request("PUT", path, body);
 }
 
-void Http::delet(const string& path, Http_Handler_t h)
+future<Http::Http_Response> Http::delet(const string& path)
 {
-    request("DELETE", path, no_body, h);
+    return request("DELETE", path, no_body);
 }
 
-void Http::trace(const string& path, Http_Handler_t h)
+future<Http::Http_Response> Http::trace(const string& path)
 {
-    request("TRACE", path, no_body, h);
+    return request("TRACE", path, no_body);
 }
 
-void Http::options(const string& path, Http_Handler_t h)
+future<Http::Http_Response> Http::options(const string& path)
 {
-    request("OPTIONS", path, no_body, h);
+    return request("OPTIONS", path, no_body);
 }
 
-void Http::connect(const string& path, const_buffer& body, Http_Handler_t h)
+future<Http::Http_Response> Http::connect(const string& path, const_buffer& body)
 {
-    request("CONNECT", path, body, h);
+    return request("CONNECT", path, body);
 }
 
-void Http::patch(const string& path, const_buffer& body, Http_Handler_t h)
+future<Http::Http_Response> Http::patch(const string& path, const_buffer& body)
 {
-    request("PATCH", path, body, h);
+    return request("PATCH", path, body);
     // XXX cache response?
 }
 
@@ -160,6 +152,37 @@ Http::Http_Response Http::make_response(boost::asio::const_buffer data)
     res.body = data;
 
     return res;
+}
+
+boost::future<Http::Http_Response> Http::promise_response(vector<const_buffer>& req)
+{
+    boost::promise<Http_Response> p;
+    boost::future<Http_Response> f = p.get_future();
+
+    error_code send_ec;
+    connection.send(req, send_ec).then([&](future<size_t> f) {
+        size_t len = f.get();
+
+        if(send_ec) {
+            // receive error response / clear socket buffer?
+        }
+
+        error_code recv_ec;
+        connection.receive(recv_ec).then([&](future<const_buffer> f) {
+            const_buffer data = f.get();
+            
+            if(recv_ec) {
+                // XXX
+            }
+            
+            Http_Response res = make_response(data);
+
+            // Signal caller that the request is done.
+            p.set_value(res);
+        });
+    });
+
+    return f;
 }
 
 /* Helpers */

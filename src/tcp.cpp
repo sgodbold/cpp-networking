@@ -1,17 +1,27 @@
 #include "tcp.h"
 
-#include <boost/asio.hpp>
 #include <string>
 #include <vector>
 
+#include "boost_definitions.h"
+#include <boost/asio.hpp>
+#include <boost/thread/future.hpp>
+
 using boost::asio::const_buffer; using boost::asio::streambuf;
 using boost::system::error_code; using boost::system::system_error;
+using boost::asio::async_write; using boost::asio::async_read;
+using boost::future;
+using boost::promise;
 
-using async_net::Tcp;
+using net::Tcp;
+
+using std::vector;
 
 Tcp::Tcp(const std::string& host, const std::string& service)
     : socket(io_service)
 {
+    // XXX use async_connect
+
     // Get a list of endpoints corresponding to the server name.
     boost::asio::ip::tcp::resolver resolver(io_service);
     boost::asio::ip::tcp::resolver::query query(host, service);
@@ -37,39 +47,46 @@ Tcp::~Tcp()
     socket.close();
 }
 
-// Send buffer contents to the connection. Calls h with any errors
-// once complete.
-void Tcp::send(const_buffer& req, Send_Handler_t h)
+future<size_t> Tcp::send(const_buffer& req, error_code& ec)
 {
-    boost::asio::async_write(socket, req,
-        [h](error_code& error, std::size_t len)
-        { h(error); }
+    promise<size_t> prom;
+    future<size_t> fut = prom.get_future();
+
+    async_write(socket, req, [&prom](const error_code& ec, std::size_t len)
+        { prom.set_value(len); }
     );
+
+    return fut;
 }
 
-// Send sequence of buffers contents to the connection. Calls h with
-// any errors once complete.
-void Tcp::send(std::vector<const_buffer>& req, Send_Handler_t h)
+future<size_t> Tcp::send(vector<const_buffer>& req, error_code& ec)
 {
-    boost::asio::async_write(socket, req,
-        [h](error_code& error, std::size_t len)
-        { h(error); }
+    promise<size_t> prom;
+    future<size_t> fut = prom.get_future();
+
+    async_write(socket, req, [&prom](const error_code& ec, size_t len)
+        { prom.set_value(len); }
     );
+
+    return fut;
 }
 
-// Receive data from connection. Calls h with a response
-// buffer on success and throws on error.
-void Tcp::receive(Receive_Handler_t h)
+future<const_buffer> Tcp::receive(error_code&)
 {
+    promise<const_buffer> prom;
+    future<const_buffer> fut = prom.get_future();
+
     streambuf response;
-    boost::asio::async_read(socket, response,
-        [h, &response](error_code& error, std::size_t len)
+    async_read(socket, response, [&prom, &response](const error_code& ec, size_t len)
         {
-            // EOF error is good so clear it before calling handler.
-            if (error == boost::asio::error::eof) {
-                error.clear();
-            }
-            h(error, response.data());
+            // XXX
+            // if (ec == boost::asio::error::eof) {
+                // ec.clear();
+            // }
+            // len doesn't matter; caller can get size of response buffer
+            prom.set_value(response.data());
         }
     );
+
+    return fut;
 }

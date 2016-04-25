@@ -1,26 +1,25 @@
 #ifndef CPP_NETWORKING_TCP
 #define CPP_NETWORKING_TCP
 
-#include <boost/asio.hpp>
 #include <string>
 #include <vector>
 
-namespace async_net {
+#include "boost_definitions.h"
+#include <boost/asio.hpp>
+#include <boost/thread/future.hpp>
+
+namespace net {
 
 class Tcp {
 public:
-    using Receive_Handler_t = std::function<void(boost::system::error_code&,
-                                                 boost::asio::const_buffer response)>;
-    using Send_Handler_t = std::function<void(boost::system::error_code&)>;
-
     explicit Tcp(const std::string& host, const std::string& service);
 
     ~Tcp();
 
-    void send(boost::asio::const_buffer& req, Send_Handler_t);
-    void send(std::vector<boost::asio::const_buffer>& req, Send_Handler_t);
+    boost::future<size_t> send(boost::asio::const_buffer&, boost::system::error_code&);
+    boost::future<size_t> send(std::vector<boost::asio::const_buffer>&, boost::system::error_code&);
 
-    void receive(Receive_Handler_t);
+    boost::future<boost::asio::const_buffer> receive(boost::system::error_code&);
 
 private:
     boost::asio::io_service io_service;

@@ -1,0 +1,6 @@
+#ifndef NET_BOOST_DEFINITIONS_H
+#define NET_BOOST_DEFINITIONS_H
+
+#define BOOST_THREAD_VERSION 4
+
+#endif

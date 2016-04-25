@@ -17,7 +17,7 @@ TEST_OBJECTS := $(patsubst $(TESTDIR)/%,$(BUILDDIR)/test/%,$(TEST_SRC:.$(SRCEXT)
 # TEST_MAIN := $(BUILDDIR)/test/tester.o
 
 # Compiler flags
-CFLAGS := -g -std=c++14 -pedantic-errors -Wall
+CFLAGS := -g -std=c++14 -pedantic-errors -Wall # -DBOOST_THREAD_PROVIDES_FUTURE -DBOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
 LIBS := -lboost_system # -lpthread -lcrypto -lssl
 INC := -Iinclude
 
