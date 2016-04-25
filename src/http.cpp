@@ -21,6 +21,7 @@ using std::string;
 using std::vector;
 
 using net::Http;
+using net::Http_Response;
 
 // Given a buffer with HTTP response data this returns a single line
 // stipped of the ending \r\n.
@@ -39,63 +40,91 @@ Http::Http(const string& host_)
 // XXX now that sends / receives are asynchronous all requests / responses must be atomically
 // paired up. 1 thread can't process multiple responses from the same socket. Maybe have a 
 // queue for 1 socket or connect a new socket for every request?
-future<Http::Http_Response> Http::request(const std::string& method, const std::string& path,
+future<Http_Response> Http::request(const std::string& method, const std::string& path,
                                           const_buffer& body)
 {
+    boost::promise<Http_Response> prom;
+    future<Http_Response> fut = prom.get_future();
+
     const_buffer req = make_request(method, path);
 
     std::vector<const_buffer> req_sequence;
     req_sequence.push_back(req);
     req_sequence.push_back(body);
 
-    // Send request and receive response
-    return promise_response(req_sequence);
+    // Send request then receive response then notify the returned future.
+    error_code send_ec;
+    connection.send(req, send_ec).then([&](future<size_t> f) -> void {
+        size_t len = f.get();
+
+        if(send_ec) {
+            // receive error response / clear socket buffer?
+        }
+
+        error_code recv_ec;
+        connection.receive(recv_ec).then([&](future<const_buffer> f) -> void {
+            const_buffer data = f.get();
+            
+            if(recv_ec) {
+                // XXX
+            }
+            
+            Http_Response res = make_response(data);
+
+            // Signal caller that the request is done.
+            prom.set_value(res);
+
+            return;
+        });
+    });
+
+    return fut;
 }
 
-future<Http::Http_Response> Http::get(const string& path)
+future<Http_Response> Http::get(const string& path)
 {
     return request("GET", path, no_body);
     // XXX cache response?
 }
 
-future<Http::Http_Response> Http::head(const string& path)
+future<Http_Response> Http::head(const string& path)
 {
     return request("HEAD", path, no_body);
     // XXX cache response?
 }
 
-future<Http::Http_Response> Http::post(const string& path, const_buffer& body)
+future<Http_Response> Http::post(const string& path, const_buffer& body)
 {
     return request("POST", path, body);
     // XXX cache response?
 }
 
-future<Http::Http_Response> Http::put(const string& path, const_buffer& body)
+future<Http_Response> Http::put(const string& path, const_buffer& body)
 {
     return request("PUT", path, body);
 }
 
-future<Http::Http_Response> Http::delet(const string& path)
+future<Http_Response> Http::delet(const string& path)
 {
     return request("DELETE", path, no_body);
 }
 
-future<Http::Http_Response> Http::trace(const string& path)
+future<Http_Response> Http::trace(const string& path)
 {
     return request("TRACE", path, no_body);
 }
 
-future<Http::Http_Response> Http::options(const string& path)
+future<Http_Response> Http::options(const string& path)
 {
     return request("OPTIONS", path, no_body);
 }
 
-future<Http::Http_Response> Http::connect(const string& path, const_buffer& body)
+future<Http_Response> Http::connect(const string& path, const_buffer& body)
 {
     return request("CONNECT", path, body);
 }
 
-future<Http::Http_Response> Http::patch(const string& path, const_buffer& body)
+future<Http_Response> Http::patch(const string& path, const_buffer& body)
 {
     return request("PATCH", path, body);
     // XXX cache response?
@@ -123,7 +152,7 @@ const_buffer Http::make_request(const std::string& method, const std::string& pa
     return req.data();
 }
 
-Http::Http_Response Http::make_response(boost::asio::const_buffer data)
+Http_Response Http::make_response(boost::asio::const_buffer& data)
 {
     Http_Response res;
 
@@ -140,8 +169,10 @@ Http::Http_Response Http::make_response(boost::asio::const_buffer data)
         std::vector<string> tokens;
         boost::split(tokens, line, boost::is_any_of(":"));
 
-        // XXX what is the line isn't a valid header?
+        // XXX what if the line isn't a valid header?
+        // check for proper form of re.match(".+:.+", line)
 
+        // Strip any surrounding whitespace
         boost::trim(tokens[0]);
         boost::trim(tokens[1]);
 
@@ -152,37 +183,6 @@ Http::Http_Response Http::make_response(boost::asio::const_buffer data)
     res.body = data;
 
     return res;
-}
-
-boost::future<Http::Http_Response> Http::promise_response(vector<const_buffer>& req)
-{
-    boost::promise<Http_Response> p;
-    boost::future<Http_Response> f = p.get_future();
-
-    error_code send_ec;
-    connection.send(req, send_ec).then([&](future<size_t> f) {
-        size_t len = f.get();
-
-        if(send_ec) {
-            // receive error response / clear socket buffer?
-        }
-
-        error_code recv_ec;
-        connection.receive(recv_ec).then([&](future<const_buffer> f) {
-            const_buffer data = f.get();
-            
-            if(recv_ec) {
-                // XXX
-            }
-            
-            Http_Response res = make_response(data);
-
-            // Signal caller that the request is done.
-            p.set_value(res);
-        });
-    });
-
-    return f;
 }
 
 /* Helpers */

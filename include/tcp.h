@@ -1,5 +1,5 @@
-#ifndef CPP_NETWORKING_TCP
-#define CPP_NETWORKING_TCP
+#ifndef CPP_NETWORKING_TCP_H
+#define CPP_NETWORKING_TCP_H
 
 #include <string>
 #include <vector>

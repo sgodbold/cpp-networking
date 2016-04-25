@@ -1,5 +1,5 @@
-#ifndef CPP_NETWORKING_HTTP
-#define CPP_NETWORKING_HTTP
+#ifndef CPP_NETWORKING_HTTP_H
+#define CPP_NETWORKING_HTTP_H
 
 #include "tcp.h"
 
@@ -15,14 +15,17 @@ const char* http_version_ = "HTTP/1.1";
 
 namespace net {
 
+struct Http_Response {
+    std::string status;
+    std::map<std::string, std::string> headers;
+    boost::asio::const_buffer body;
+};
+
 class Http {
 public:
-    struct Http_Response;
-
-    using Http_Handler_t = std::function<void(boost::system::error_code, Http_Response)>;
-    using Headers_t = std::map<std::string, std::string>;
-
     explicit Http(const std::string& host);
+
+    //XXX should these async entry points be pass by value to ensure nothing is destructed before work is complete.
 
     boost::future<Http_Response> request(const std::string& method, const std::string& path,
                                          boost::asio::const_buffer& body);
@@ -51,23 +54,15 @@ public:
     void remove_header(const std::string& name)
         { headers.erase(name); }
 
-    struct Http_Response {
-        std::string status;
-        std::map<std::string, std::string> headers;
-        boost::asio::const_buffer body;
-    };
-
 private:
     Tcp connection;
     const std::string& host;
     std::string http_version;
-    Headers_t headers;
+    std::map<std::string, std::string> headers;
 
     boost::asio::const_buffer make_request(const std::string& method, const std::string& path);
 
-    Http_Response make_response(boost::asio::const_buffer data);
-
-    boost::future<Http_Response> promise_response(std::vector<boost::asio::const_buffer>& req);
+    Http_Response make_response(boost::asio::const_buffer& data);
 
 }; // class Http
 } // namespace net

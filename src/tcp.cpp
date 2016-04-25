@@ -52,7 +52,7 @@ future<size_t> Tcp::send(const_buffer& req, error_code& ec)
     promise<size_t> prom;
     future<size_t> fut = prom.get_future();
 
-    async_write(socket, req, [&prom](const error_code& ec, std::size_t len)
+    async_write(socket, boost::asio::buffer(req), [&prom](const error_code& ec, std::size_t len)
         { prom.set_value(len); }
     );
 
