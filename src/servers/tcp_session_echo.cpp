@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <memory>
+#include <vector>
 
 using boost::asio::const_buffer;
 using boost::asio::streambuf;
@@ -17,11 +18,11 @@ Tcp_Session_Echo::Tcp_Session_Echo(boost::asio::ip::tcp::socket socket)
     : Tcp_Session_Base(std::move(socket))
 {}
 
-void Tcp_Session_Echo::do_read_work(shared_ptr<streambuf> data_ptr, error_code ec)
+void Tcp_Session_Echo::do_read_work(shared_ptr<std::vector<char>> data_ptr, error_code ec)
 {
     cout << " | Working on read data" << endl;
     if (!ec) {
-        auto buf = make_shared<const_buffer>(data_ptr->data());
+        auto buf = make_shared<const_buffer>(boost::asio::buffer(*data_ptr, max_length_c));
         do_write(buf);
     }
 }

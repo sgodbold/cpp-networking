@@ -1,5 +1,6 @@
 #include "tcp.h"
 
+#include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
@@ -37,6 +38,13 @@ Tcp::Tcp(const std::string& host, const std::string& service)
         socket.close();
         socket.connect(*endpoint_iterator++, error);
     }
+
+    // XXX correct?
+    // XXX so run will block as long as there is work to do on the event loop queue.
+    // This might not be the best approach. Maybe pass the io_service in the constructor
+    // and let the caller deal with it??
+    io_service.run();
+
     if (error) {
         throw system_error(error);
     }
@@ -55,8 +63,13 @@ Tcp::Send_Return_t Tcp::send(const_buffer& req, error_code& ec)
     shared_ptr<promise<size_t>> prom = make_shared<promise<size_t>>();
     shared_ptr<future<size_t>> fut = std::make_shared<future<size_t>>(prom->get_future());
 
-    async_write(socket, boost::asio::buffer(req), [prom](const error_code& ec, std::size_t len)
-        { prom->set_value(len); }
+    std::size_t size = boost::asio::buffer_size(req);
+    std::cout << "Sending " << size << " bytes..." << std::endl;
+    async_write(socket, boost::asio::buffer(req, size), [prom](const error_code& ec, std::size_t len)
+        {
+            std::cout << "Sent" << std::endl;
+            prom->set_value(len);
+        }
     );
 
     return fut;

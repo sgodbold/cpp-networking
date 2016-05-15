@@ -39,6 +39,6 @@ $(BUILDDIR)/%.o: $(SOURCEDIR)/%.$(SRCEXT)
 
 clean:
 	@echo " Cleaning..."
-	$(RM) -r $(BUILDDIR) $(TARGET)
+	$(RM) -r $(BUILDDIR) bin/*
 
 .PHONY: clean

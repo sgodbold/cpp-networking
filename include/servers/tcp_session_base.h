@@ -2,12 +2,15 @@
 #define CPP_NETWORKING_TCP_SESSION_BASE_H
 
 #include <memory>
+#include <vector>
 
 #include <boost/asio.hpp>
 
 class Tcp_Session_Base : public std::enable_shared_from_this<Tcp_Session_Base>
 {
 public:
+    const size_t max_length_c = 8;
+
     Tcp_Session_Base(boost::asio::ip::tcp::socket socket_);
     virtual ~Tcp_Session_Base() = 0;
 
@@ -19,7 +22,7 @@ protected:
 
     // Called by do_read and do_write. Overload to specify what happens
     // after the read / write operation is done.
-    virtual void do_read_work(std::shared_ptr<boost::asio::streambuf> data_ptr,
+    virtual void do_read_work(std::shared_ptr<std::vector<char>> data_ptr,
                               boost::system::error_code) = 0;
     virtual void do_write_work(boost::system::error_code, std::size_t length) = 0;
 
