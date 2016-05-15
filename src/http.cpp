@@ -12,7 +12,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/thread/future.hpp>
 
-using boost::asio::const_buffer; using boost::asio::streambuf;
+using boost::asio::const_buffer; using boost::asio::mutable_buffer;
+using boost::asio::streambuf;
 using boost::asio::read_until;
 using boost::future;
 using boost::system::error_code; using boost::system::system_error;
@@ -25,7 +26,7 @@ using net::Http_Response;
 
 // Given a buffer with HTTP response data this returns a single line
 // stipped of the ending \r\n.
-static string get_response_line(const_buffer& data);
+static string get_response_line(string& data);
 
 // Use same buffer for empty contents in requests and responses.
 static const_buffer no_body;
@@ -54,16 +55,17 @@ future<Http_Response> Http::request(const std::string& method, const std::string
 
     // Send request then receive response then notify the returned future.
     error_code send_ec;
-    connection.send(req, send_ec).then([&](future<size_t> f) -> void {
-        size_t len = f.get();
+    connection.send(req, send_ec)->then([&](future<size_t> f) -> void {
+        /*size_t len = */f.get();
 
         if(send_ec) {
             // receive error response / clear socket buffer?
         }
 
+        /* XXX won't compile
         error_code recv_ec;
-        connection.receive(recv_ec).then([&](future<const_buffer> f) -> void {
-            const_buffer data = f.get();
+        connection.receive(recv_ec).then([&](future<string> f) -> void {
+            string data = f.get();
             
             if(recv_ec) {
                 // XXX
@@ -76,6 +78,7 @@ future<Http_Response> Http::request(const std::string& method, const std::string
 
             return;
         });
+        */
     });
 
     return fut;
@@ -152,7 +155,7 @@ const_buffer Http::make_request(const std::string& method, const std::string& pa
     return req.data();
 }
 
-Http_Response Http::make_response(boost::asio::const_buffer& data)
+Http_Response Http::make_response(string& data)
 {
     Http_Response res;
 
@@ -164,6 +167,7 @@ Http_Response Http::make_response(boost::asio::const_buffer& data)
     while (true) {
         line = get_response_line(data);
         if (line.empty()) {
+            // stop at spacer
             break;
         }
         std::vector<string> tokens;
@@ -180,7 +184,8 @@ Http_Response Http::make_response(boost::asio::const_buffer& data)
     }
 
     // Body
-    res.body = data;
+    // XXX won't compile
+    // res.body = data;
 
     return res;
 }
@@ -189,8 +194,9 @@ Http_Response Http::make_response(boost::asio::const_buffer& data)
 
 // Given a buffer with HTTP response data this returns a single line
 // stipped of the ending \r\n.
-string get_response_line(const_buffer& data)
+string get_response_line(string& data)
 {
+    /* XXX won't compile
     streambuf buf;
     size_t n = read_until(data, buf, "\r\n");
     buf.commit(n);
@@ -204,4 +210,5 @@ string get_response_line(const_buffer& data)
     result.pop_back();
 
     return result;
+    */
 }

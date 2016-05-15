@@ -23,6 +23,7 @@ struct Http_Response {
 
 class Http {
 public:
+    // XXX blocking
     explicit Http(const std::string& host);
 
     //XXX should these async entry points be pass by value to ensure nothing is destructed before work is complete.
@@ -62,7 +63,7 @@ private:
 
     boost::asio::const_buffer make_request(const std::string& method, const std::string& path);
 
-    Http_Response make_response(boost::asio::const_buffer& data);
+    Http_Response make_response(std::string& data);
 
 }; // class Http
 } // namespace net

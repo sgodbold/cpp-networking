@@ -1,5 +1,6 @@
 #include "tcp.h"
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -7,14 +8,16 @@
 #include <boost/asio.hpp>
 #include <boost/thread/future.hpp>
 
-using boost::asio::const_buffer; using boost::asio::streambuf;
-using boost::system::error_code; using boost::system::system_error;
+using boost::asio::const_buffer; using boost::asio::mutable_buffer;
+using boost::asio::streambuf;
 using boost::asio::async_write; using boost::asio::async_read;
-using boost::future;
-using boost::promise;
+using boost::future; using boost::promise;
+using boost::system::error_code; using boost::system::system_error;
 
 using net::Tcp;
 
+using std::shared_ptr; using std::make_shared;
+using std::string;
 using std::vector;
 
 Tcp::Tcp(const std::string& host, const std::string& service)
@@ -47,34 +50,34 @@ Tcp::~Tcp()
     socket.close();
 }
 
-future<size_t> Tcp::send(const_buffer& req, error_code& ec)
+Tcp::Send_Return_t Tcp::send(const_buffer& req, error_code& ec)
 {
-    promise<size_t> prom;
-    future<size_t> fut = prom.get_future();
+    shared_ptr<promise<size_t>> prom = make_shared<promise<size_t>>();
+    shared_ptr<future<size_t>> fut = std::make_shared<future<size_t>>(prom->get_future());
 
-    async_write(socket, boost::asio::buffer(req), [&prom](const error_code& ec, std::size_t len)
-        { prom.set_value(len); }
+    async_write(socket, boost::asio::buffer(req), [prom](const error_code& ec, std::size_t len)
+        { prom->set_value(len); }
     );
 
     return fut;
 }
 
-future<size_t> Tcp::send(vector<const_buffer>& req, error_code& ec)
+Tcp::Send_Return_t Tcp::send(vector<const_buffer>& req, error_code& ec)
 {
-    promise<size_t> prom;
-    future<size_t> fut = prom.get_future();
+    shared_ptr<promise<size_t>> prom = make_shared<promise<size_t>>();
+    shared_ptr<future<size_t>> fut = std::make_shared<future<size_t>>(prom->get_future());
 
-    async_write(socket, req, [&prom](const error_code& ec, size_t len)
-        { prom.set_value(len); }
+    async_write(socket, req, [prom](const error_code& ec, size_t len)
+        { prom->set_value(len); }
     );
 
     return fut;
 }
 
-future<const_buffer> Tcp::receive(error_code&)
+Tcp::Receive_Return_t Tcp::receive(error_code&)
 {
-    promise<const_buffer> prom;
-    future<const_buffer> fut = prom.get_future();
+    auto prom = make_shared<promise<const_buffer>>();
+    auto fut = std::make_shared<future<const_buffer>>(prom->get_future());
 
     streambuf response;
     async_read(socket, response, [&prom, &response](const error_code& ec, size_t len)
@@ -83,8 +86,7 @@ future<const_buffer> Tcp::receive(error_code&)
             // if (ec == boost::asio::error::eof) {
                 // ec.clear();
             // }
-            // len doesn't matter; caller can get size of response buffer
-            prom.set_value(response.data());
+            prom->set_value(response.data());
         }
     );
 

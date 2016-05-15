@@ -8,7 +8,6 @@ TARGET := bin/dropbox-mnt
 SOURCEDIR := src
 SOURCES := $(shell find $(SOURCEDIR) -type f -name *.$(SRCEXT))
 OBJECTS := $(patsubst $(SOURCEDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
-# SOURCE_MAIN := $(BUILDDIR)/trader.o
 
 # Test files
 TESTDIR := test
@@ -17,8 +16,8 @@ TEST_OBJECTS := $(patsubst $(TESTDIR)/%,$(BUILDDIR)/test/%,$(TEST_SRC:.$(SRCEXT)
 # TEST_MAIN := $(BUILDDIR)/test/tester.o
 
 # Compiler flags
-CFLAGS := -g -std=c++14 -pedantic-errors -Wall # -DBOOST_THREAD_PROVIDES_FUTURE -DBOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
-LIBS := -lboost_system # -lpthread -lcrypto -lssl
+CFLAGS := -g -std=c++14 -pedantic-errors -Wall
+LIBS := -lboost_system -lboost_thread # -lpthread # -lcrypto -lssl
 INC := -Iinclude
 
 # Top executable linking
@@ -29,6 +28,9 @@ $(TARGET): $(OBJECTS)
 test: $(OBJECTS) $(TEST_OBJECTS)
 	@echo " Linking..."
 	$(CC) $^ -o bin/test $(LIBS)
+
+standalone/%: $(OBJECTS)
+	$(CC) -lpthread $(CFLAGS) $(INC) $^ $@.$(SRCEXT) -o bin/$(@F) $(LIBS)
 
 # Build director targets. Order them from most to least specific
 $(BUILDDIR)/%.o: $(SOURCEDIR)/%.$(SRCEXT)

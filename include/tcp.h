@@ -12,14 +12,19 @@ namespace net {
 
 class Tcp {
 public:
+    using Send_Return_t = std::shared_ptr<boost::future<size_t>>;
+    using Receive_Return_t = std::shared_ptr<boost::future<boost::asio::const_buffer>>;
+
+    // XXX blocking
     explicit Tcp(const std::string& host, const std::string& service);
 
+    // XXX blocking
     ~Tcp();
 
-    boost::future<size_t> send(boost::asio::const_buffer&, boost::system::error_code&);
-    boost::future<size_t> send(std::vector<boost::asio::const_buffer>&, boost::system::error_code&);
+    Send_Return_t send(boost::asio::const_buffer&, boost::system::error_code&);
+    Send_Return_t send(std::vector<boost::asio::const_buffer>&, boost::system::error_code&);
 
-    boost::future<boost::asio::const_buffer> receive(boost::system::error_code&);
+    Receive_Return_t receive(boost::system::error_code&);
 
 private:
     boost::asio::io_service io_service;
