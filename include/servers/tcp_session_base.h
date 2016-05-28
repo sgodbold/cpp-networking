@@ -9,7 +9,7 @@
 class Tcp_Session_Base : public std::enable_shared_from_this<Tcp_Session_Base>
 {
 public:
-    const size_t max_length_c = 8;
+    const size_t max_length_c = 1024;
 
     Tcp_Session_Base(boost::asio::ip::tcp::socket socket_);
     virtual ~Tcp_Session_Base() = 0;
@@ -25,6 +25,9 @@ protected:
     virtual void do_read_work(std::shared_ptr<std::vector<char>> data_ptr,
                               boost::system::error_code) = 0;
     virtual void do_write_work(boost::system::error_code, std::size_t length) = 0;
+
+    // TODO: implement a strategy pattern to determine how to read and parse the socket.
+    //       by length, by delimeter, etc..
 
 private:
     boost::asio::ip::tcp::socket socket;

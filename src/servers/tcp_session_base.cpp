@@ -39,10 +39,11 @@ void Tcp_Session_Base::do_read()
     std::cout << " | Waiting to read..." << std::endl;
     // async_read(socket, *data_ptr, [this, self, data_ptr] (error_code ec, std::size_t length) {
     socket.async_read_some(boost::asio::buffer(*data_ptr, max_length_c),
-                           [this, self, data_ptr] (error_code ec, std::size_t length) {
-        std::cout << " | Read " << length << " bytes" << std::endl;
-        this->do_read_work(data_ptr, ec);
-    });
+            [this, self, data_ptr] (error_code ec, std::size_t length) {
+                std::cout << " | Read " << length << " bytes" << std::endl;
+                this->do_read_work(data_ptr, ec);
+            }
+    );
 }
 
 void Tcp_Session_Base::do_write(shared_ptr<const_buffer> data)

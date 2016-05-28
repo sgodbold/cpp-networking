@@ -1,11 +1,16 @@
 #include "tcp.h"
 
 #include <iostream>
+#include <memory>
 #include <string>
+#include <sstream>
 
 #include <boost/asio.hpp>
 
+using boost::asio::buffer; using boost::asio::const_buffer; using boost::asio::streambuf;
+
 using std::cout; using std::cin; using std::cerr; using std::endl;
+using std::shared_ptr;
 using std::string;
 
 using net::Tcp;
@@ -24,22 +29,23 @@ int main(int argc, char* argv[]) {
         Tcp client("localhost", port);
 
         while(true) {
+            // Get message to send
             cout << "Send: ";
             cin >> input;
+            if(input == "quit") { break; }
+            input += "\r\n";
 
-            boost::asio::const_buffer send_buf(boost::asio::buffer(input));
-            auto len = client.send(send_buf, ec);
-            cout << "Waiting for send..." << endl;
-            cout << len->get() << endl;
+            // Send / receive the message
+            const_buffer send_buf(buffer(input));
+            client.send(send_buf, ec)->get();
+            auto res_fut = client.receive_line(ec);
 
-            auto res_fut = client.receive(ec);
-            cout << "Waiting for receive..." << endl;
-            boost::asio::const_buffer res_buf = res_fut->get();
+            // Convert response buffer to string
+            shared_ptr<streambuf> res_buf = res_fut.get();
+            std::ostringstream ss;
+            ss << res_buf;
 
-            std::size_t s1 = boost::asio::buffer_size(res_buf);
-            const unsigned char* p1 = boost::asio::buffer_cast<const unsigned char*>(res_buf);
-
-            cout << "Recv: " << p1 << endl;
+            cout << "Recv: " << ss.str();
         }
     }
     catch (std::exception& e) {

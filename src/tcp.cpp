@@ -9,9 +9,9 @@
 #include <boost/asio.hpp>
 #include <boost/thread/future.hpp>
 
-using boost::asio::const_buffer; using boost::asio::mutable_buffer;
-using boost::asio::streambuf;
-using boost::asio::async_write; using boost::asio::async_read;
+using boost::asio::const_buffer; using boost::asio::buffer; using boost::asio::streambuf;
+using boost::asio::async_write; using boost::asio::async_read; using boost::asio::async_read_until;
+using boost::asio::io_service;
 using boost::future; using boost::promise;
 using boost::system::error_code; using boost::system::system_error;
 
@@ -21,9 +21,18 @@ using std::shared_ptr; using std::make_shared;
 using std::string;
 using std::vector;
 
+// Initialize Statics
+vector<boost::thread> Tcp::io_threads;
+boost::asio::io_service Tcp::io_service;
+shared_ptr<io_service::work> Tcp::io_work = make_shared<io_service::work>(io_service);
+
 Tcp::Tcp(const std::string& host, const std::string& service)
     : socket(io_service)
 {
+    if(io_threads.empty()) {
+        add_io_thread();
+    }
+
     // XXX use async_connect
 
     // Get a list of endpoints corresponding to the server name.
@@ -38,12 +47,6 @@ Tcp::Tcp(const std::string& host, const std::string& service)
         socket.close();
         socket.connect(*endpoint_iterator++, error);
     }
-
-    // XXX correct?
-    // XXX so run will block as long as there is work to do on the event loop queue.
-    // This might not be the best approach. Maybe pass the io_service in the constructor
-    // and let the caller deal with it??
-    io_service.run();
 
     if (error) {
         throw system_error(error);
@@ -89,19 +92,59 @@ Tcp::Send_Return_t Tcp::send(vector<const_buffer>& req, error_code& ec)
 
 Tcp::Receive_Return_t Tcp::receive(error_code&)
 {
-    auto prom = make_shared<promise<const_buffer>>();
-    auto fut = std::make_shared<future<const_buffer>>(prom->get_future());
+    auto prom = make_shared<promise<shared_ptr<streambuf>>>();
+    auto fut = prom->get_future();
+    auto response = make_shared<streambuf>();
 
-    streambuf response;
-    async_read(socket, response, [&prom, &response](const error_code& ec, size_t len)
+    async_read(socket, *response, [prom, response](const error_code& ec, size_t len)
         {
-            // XXX
-            // if (ec == boost::asio::error::eof) {
-                // ec.clear();
-            // }
-            prom->set_value(response.data());
+            // XXX check errors
+            prom->set_value(response);
         }
     );
 
     return fut;
+}
+
+Tcp::Receive_Return_t Tcp::receive(size_t size, error_code& ec)
+{
+    auto prom = make_shared<promise<shared_ptr<streambuf>>>();
+    auto fut = prom->get_future();
+    auto response = make_shared<streambuf>(size);
+
+    async_read(socket, *response, [prom, response](const error_code& ec, size_t len)
+        {
+            // XXX check errors
+            prom->set_value(response);
+        }
+    );
+
+    return fut;
+}
+
+Tcp::Receive_Return_t Tcp::receive_line(error_code& ec)
+{
+    auto prom = make_shared<promise<shared_ptr<streambuf>>>();
+    auto fut = prom->get_future();
+    auto response = make_shared<streambuf>();
+
+    async_read_until(socket, *response, '\n', [prom, response](const error_code& ec, size_t len)
+        {
+            // XXX check errors
+            prom->set_value(response);
+        }
+    );
+
+    return fut;
+}
+
+void Tcp::add_io_thread()
+{
+    // XXX so run will block as long as there is work to do on the event loop queue.
+    // This might not be the best approach. Maybe pass the io_service in the constructor
+    // and let the caller deal with it??
+    io_threads.push_back(boost::thread([&]() {
+        Tcp::io_service.run();
+        std::cerr << "io_service done!" << std::endl;
+    }));
 }
