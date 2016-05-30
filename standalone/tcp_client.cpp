@@ -37,11 +37,13 @@ int main(int argc, char* argv[]) {
 
             // Send / receive the message
             const_buffer send_buf(buffer(input));
-            client.send(send_buf, ec)->get();
+            auto send_fut = client.send(send_buf, ec);
+            cout << "Sent " << send_fut.get() << " bytes" << endl;
             auto res_fut = client.receive_line(ec);
 
             // Convert response buffer to string
             shared_ptr<streambuf> res_buf = res_fut.get();
+            cout << "Received " << res_buf->size() << " bytes" << endl;
             std::ostringstream ss;
             ss << res_buf;
 

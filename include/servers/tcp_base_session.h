@@ -6,13 +6,15 @@
 
 #include <boost/asio.hpp>
 
-class Tcp_Session_Base : public std::enable_shared_from_this<Tcp_Session_Base>
+namespace net {
+
+class Tcp_Base_Session : public std::enable_shared_from_this<Tcp_Base_Session>
 {
 public:
     const size_t max_length_c = 1024;
 
-    Tcp_Session_Base(boost::asio::ip::tcp::socket socket_);
-    virtual ~Tcp_Session_Base() = 0;
+    Tcp_Base_Session(boost::asio::ip::tcp::socket socket_);
+    virtual ~Tcp_Base_Session() = 0;
 
     virtual void start();
 
@@ -31,6 +33,8 @@ protected:
 
 private:
     boost::asio::ip::tcp::socket socket;
-};
+}; // Tcp_Base_Session
+
+} // net
 
 #endif

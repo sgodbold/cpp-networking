@@ -1,3 +1,4 @@
+#include "servers/tcp_echo_session.h"
 #include "servers/tcp_server.h"
 
 #include <iostream>
@@ -15,7 +16,7 @@ int main(int argc, char* argv[]) {
 
         boost::asio::io_service io_service;
 
-        Tcp_Server s(io_service, std::atoi(argv[1]));
+        net::Tcp_Server s(net::Tcp_Server::Role_t::Echo, io_service, std::atoi(argv[1]));
 
         io_service.run();
     }
