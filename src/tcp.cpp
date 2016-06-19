@@ -20,15 +20,11 @@ using std::shared_ptr; using std::make_shared;
 using std::string;
 using std::vector;
 
-// Initialize Statics
-vector<boost::thread> Tcp::io_threads;
-boost::asio::io_service Tcp::io_service;
-io_service::work Tcp::io_work(io_service);
-
 Tcp::Tcp(const std::string& host, const std::string& service)
-    : connection_status(Status_t::Connecting), socket(io_service)
+    : connection_status(Status_t::Connecting), io_service(), socket(io_service)
 {
     if(io_threads.empty()) {
+        io_work = make_shared<boost::asio::io_service::work>(io_service);
         add_io_thread();
     }
 
@@ -66,6 +62,9 @@ void Tcp::close()
 {
     // Stop all asynchronous operations.
     io_service.stop();
+    io_work.reset();
+
+    // Stop all running threads.
     for_each(io_threads.begin(), io_threads.end(), [](boost::thread& t) { t.join(); });
 
     // Shutdown before closing for portable graceful closures.

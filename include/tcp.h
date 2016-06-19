@@ -51,13 +51,14 @@ public:
 
 private:
     // Add a thread to execute io_service work
-    static void add_io_thread();
-
-    static boost::asio::io_service io_service;
-    static boost::asio::io_service::work io_work;
-    static std::vector<boost::thread> io_threads;
+    void add_io_thread();
 
     Status_t connection_status;
+
+    boost::asio::io_service io_service;
+    std::shared_ptr<boost::asio::io_service::work> io_work;
+    std::vector<boost::thread> io_threads;
+
     boost::asio::ip::tcp::socket socket;
 
 }; // Tcp

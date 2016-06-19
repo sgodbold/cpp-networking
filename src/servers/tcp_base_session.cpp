@@ -33,11 +33,11 @@ void Tcp_Base_Session::do_read()
     // needs to run. Bad things would happen if all other pointers are deleted while this
     // is running.
     auto self(shared_from_this());
+
     // XXX replace with streambufs
     auto data_ptr = make_shared<std::vector<char>>(max_length_c);
 
     std::cout << " | Waiting to read..." << std::endl;
-    // async_read(socket, *data_ptr, [this, self, data_ptr] (error_code ec, std::size_t length) {
     socket.async_read_some(boost::asio::buffer(*data_ptr, max_length_c),
             [this, self, data_ptr] (error_code ec, std::size_t length) {
                 std::cout << " | Read " << length << " bytes" << std::endl;
@@ -50,8 +50,10 @@ void Tcp_Base_Session::do_write(shared_ptr<const_buffer> data)
 {
     auto self(shared_from_this());
 
-    async_write(socket, buffer(*data, max_length_c), [this, self] (error_code ec, std::size_t length) {
-        std::cout << " | Wrote " << length << " bytes" << std::endl;
-        this->do_write_work(ec, length);
-    });
+    async_write(socket, buffer(*data, max_length_c),
+        [this, self] (error_code ec, std::size_t length) {
+            std::cout << " | Wrote " << length << " bytes" << std::endl;
+            this->do_write_work(ec, length);
+        }
+    );
 }
