@@ -1,6 +1,5 @@
 #include "tcp.h"
 
-#include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
@@ -24,10 +23,10 @@ using std::vector;
 // Initialize Statics
 vector<boost::thread> Tcp::io_threads;
 boost::asio::io_service Tcp::io_service;
-shared_ptr<io_service::work> Tcp::io_work = make_shared<io_service::work>(io_service);
+io_service::work Tcp::io_work(io_service);
 
 Tcp::Tcp(const std::string& host, const std::string& service)
-    : socket(io_service)
+    : connection_status(Status_t::Connecting), socket(io_service)
 {
     if(io_threads.empty()) {
         add_io_thread();
@@ -49,28 +48,42 @@ Tcp::Tcp(const std::string& host, const std::string& service)
     }
 
     if (error) {
+        connection_status = Status_t::Bad;
         throw system_error(error);
     }
+
+    connection_status = Status_t::Open;
 }
 
 Tcp::~Tcp()
 {
+    if(connection_status == Status_t::Open) {
+        close();
+    }
+}
+
+void Tcp::close()
+{
+    // Stop all asynchronous operations.
+    io_service.stop();
+    for_each(io_threads.begin(), io_threads.end(), [](boost::thread& t) { t.join(); });
+
     // Shutdown before closing for portable graceful closures.
     socket.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
     socket.shutdown(boost::asio::ip::tcp::socket::shutdown_receive);
     socket.close();
+
+    connection_status = Status_t::Closed;
 }
 
 Tcp::Send_Return_t Tcp::send(const_buffer& req, error_code& ec)
 {
     shared_ptr<promise<size_t>> prom = make_shared<promise<size_t>>();
-    shared_ptr<future<size_t>> fut = std::make_shared<future<size_t>>(prom->get_future());
+    future<size_t> fut = prom->get_future();
 
     std::size_t size = boost::asio::buffer_size(req);
-    std::cout << "Sending " << size << " bytes..." << std::endl;
-    async_write(socket, boost::asio::buffer(req, size), [prom](const error_code& ec, std::size_t len)
+    async_write(socket, buffer(req, size), [prom](const error_code& ec, std::size_t len)
         {
-            std::cout << "Sent" << std::endl;
             prom->set_value(len);
         }
     );
@@ -81,7 +94,7 @@ Tcp::Send_Return_t Tcp::send(const_buffer& req, error_code& ec)
 Tcp::Send_Return_t Tcp::send(vector<const_buffer>& req, error_code& ec)
 {
     shared_ptr<promise<size_t>> prom = make_shared<promise<size_t>>();
-    shared_ptr<future<size_t>> fut = std::make_shared<future<size_t>>(prom->get_future());
+    future<size_t> fut = prom->get_future();
 
     async_write(socket, req, [prom](const error_code& ec, size_t len)
         { prom->set_value(len); }
@@ -140,9 +153,6 @@ Tcp::Receive_Return_t Tcp::receive_line(error_code& ec)
 
 void Tcp::add_io_thread()
 {
-    // XXX so run will block as long as there is work to do on the event loop queue.
-    // This might not be the best approach. Maybe pass the io_service in the constructor
-    // and let the caller deal with it??
     io_threads.push_back(boost::thread([&]() {
         Tcp::io_service.run();
         std::cerr << "io_service done!" << std::endl;

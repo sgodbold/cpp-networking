@@ -12,7 +12,7 @@ OBJECTS := $(patsubst $(SOURCEDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
 # Test files
 TESTDIR := test
 TEST_SRC := $(shell find $(TESTDIR) -type f -name *.$(SRCEXT))
-TEST_OBJECTS := $(patsubst $(TESTDIR)/%,$(BUILDDIR)/test/%,$(TEST_SRC:.$(SRCEXT)=.o))
+TEST_OBJECTS := $(patsubst $(TESTDIR)/%, $(BUILDDIR)/test/%, $(TEST_SRC:.$(SRCEXT)=.o))
 # TEST_MAIN := $(BUILDDIR)/test/tester.o
 
 # Compiler flags
@@ -24,15 +24,19 @@ INC := -Iinclude
 $(TARGET): $(OBJECTS)
 	@echo " Linking..."
 	$(CC) $^ -o $(TARGET) $(LIBS)
+
 # test: $(filter-out $(SOURCE_MAIN), $(OBJECTS)) $(TEST_OBJECTS)
 test: $(OBJECTS) $(TEST_OBJECTS)
 	@echo " Linking..."
-	$(CC) $^ -o bin/test $(LIBS)
+	$(CC) -lpthread $^ -o bin/test $(LIBS)
 
 standalone/%: $(OBJECTS)
 	$(CC) -lpthread $(CFLAGS) $(INC) $^ $@.$(SRCEXT) -o bin/$(@F) $(LIBS)
 
-# Build director targets. Order them from most to least specific
+# Build directory targets. Order them from most to least specific
+$(BUILDDIR)/test/%.o: $(TESTDIR)/%.$(SRCEXT)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(INC) -c -o $@ $<
 $(BUILDDIR)/%.o: $(SOURCEDIR)/%.$(SRCEXT)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(INC) -c -o $@ $<

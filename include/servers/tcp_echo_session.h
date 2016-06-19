@@ -5,6 +5,7 @@
 
 #include <vector>
 
+#include "boost_definitions.h"
 #include <boost/asio.hpp>
 
 namespace net {
@@ -13,6 +14,7 @@ class Tcp_Echo_Session : public Tcp_Base_Session
 {
 public:
     Tcp_Echo_Session(boost::asio::ip::tcp::socket socket);
+    ~Tcp_Echo_Session() {}
 
 protected:
     void do_read_work(std::shared_ptr<std::vector<char>> data_ptr,

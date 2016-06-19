@@ -6,12 +6,12 @@
 
 #include <boost/asio.hpp>
 
-using net::Tcp_Base_Session;
-
 using boost::asio::buffer;
 using boost::asio::const_buffer;
 using boost::asio::streambuf;
 using boost::system::error_code;
+
+using net::Tcp_Base_Session;
 
 using std::shared_ptr;
 using std::make_shared;

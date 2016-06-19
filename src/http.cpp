@@ -18,11 +18,11 @@ using boost::asio::read_until;
 using boost::future;
 using boost::system::error_code; using boost::system::system_error;
 
-using std::string;
-using std::vector;
-
 using net::Http;
 using net::Http_Response;
+
+using std::string;
+using std::vector;
 
 // Given a buffer with HTTP response data this returns a single line
 // stipped of the ending \r\n.
@@ -55,7 +55,7 @@ future<Http_Response> Http::request(const std::string& method, const std::string
 
     // Send request then receive response then notify the returned future.
     error_code send_ec;
-    connection.send(req, send_ec)->then([&](future<size_t> f) -> void {
+    connection.send(req, send_ec).then([&](future<size_t> f) -> void {
         /*size_t len = */f.get();
 
         if(send_ec) {

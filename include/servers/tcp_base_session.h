@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 
+#include "boost_definitions.h"
 #include <boost/asio.hpp>
 
 namespace net {
@@ -16,7 +17,7 @@ public:
     Tcp_Base_Session(boost::asio::ip::tcp::socket socket_);
     virtual ~Tcp_Base_Session() = 0;
 
-    virtual void start();
+    void start();
 
 protected:
     void do_read();

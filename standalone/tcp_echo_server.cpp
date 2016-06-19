@@ -6,6 +6,7 @@
 #include <boost/asio.hpp>
 
 using std::cout; using std::cerr; using std::endl;
+using net::Tcp_Server;
 
 int main(int argc, char* argv[]) {
     try {
@@ -14,11 +15,9 @@ int main(int argc, char* argv[]) {
             return 1;
         }
 
-        boost::asio::io_service io_service;
+        net::Tcp_Server s(net::Tcp_Server::Role_t::Echo, std::atoi(argv[1]));
 
-        net::Tcp_Server s(net::Tcp_Server::Role_t::Echo, io_service, std::atoi(argv[1]));
-
-        io_service.run();
+        while(true);
     }
     catch (std::exception& e) {
         cerr << "Exception: " << e.what() << endl;

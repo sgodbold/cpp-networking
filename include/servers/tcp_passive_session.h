@@ -14,6 +14,7 @@ class Tcp_Passive_Session : public Tcp_Base_Session
 {
 public:
     Tcp_Passive_Session(boost::asio::ip::tcp::socket socket);
+    ~Tcp_Passive_Session() {}
 
 protected:
     void do_read_work(std::shared_ptr<std::vector<char>> data_ptr,

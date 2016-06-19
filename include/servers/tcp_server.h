@@ -9,6 +9,7 @@
 
 #include "boost_definitions.h"
 #include <boost/asio.hpp>
+#include <boost/thread.hpp>
 
 namespace net {
 
@@ -25,16 +26,28 @@ public:
         Echo,
     };
 
-    Tcp_Server(Role_t, boost::asio::io_service& io_service_, short port);
+    Tcp_Server(Role_t, short port);
+    ~Tcp_Server();
 
 private:
     void do_accept();
 
     void new_connection(boost::asio::ip::tcp::socket);
 
+    // XXX move this to it's own class
+    void add_io_thread();
+
     const Role_t server_role;
+
+    // XXX move to separate class
+    boost::asio::io_service io_service;
+    std::shared_ptr<boost::asio::io_service::work> io_work;
+    std::vector<boost::thread> io_threads;
+    std::shared_ptr<boost::thread> accept_thread;
+
     boost::asio::ip::tcp::acceptor acceptor;
     boost::asio::ip::tcp::socket socket;
+
 }; // Tcp_Server
 
 } // net
