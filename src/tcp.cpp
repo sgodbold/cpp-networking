@@ -10,7 +10,6 @@
 
 using boost::asio::const_buffer; using boost::asio::buffer; using boost::asio::streambuf;
 using boost::asio::async_write; using boost::asio::async_read; using boost::asio::async_read_until;
-using boost::asio::io_service;
 using boost::future; using boost::promise;
 using boost::system::error_code; using boost::system::system_error;
 
@@ -21,34 +20,10 @@ using std::string;
 using std::vector;
 
 Tcp::Tcp(const std::string& host, const std::string& service)
-    : connection_status(Status_t::Connecting), io_service(), socket(io_service)
+    : connection_status(Status_t::Connecting), io_service(Io_Service::Behavior_t::Perpetual),
+      socket(io_service.get())
 {
-    if(io_threads.empty()) {
-        io_work = make_shared<boost::asio::io_service::work>(io_service);
-        add_io_thread();
-    }
-
-    // XXX use async_connect
-
-    // Get a list of endpoints corresponding to the server name.
-    boost::asio::ip::tcp::resolver resolver(io_service);
-    boost::asio::ip::tcp::resolver::query query(host, service);
-    auto endpoint_iterator = resolver.resolve(query);
-
-    // Try each endpoint until we successfully establish a connection.
-    boost::asio::ip::tcp::resolver::iterator end;
-    error_code error = boost::asio::error::host_not_found;
-    while (error and endpoint_iterator != end) {
-        socket.close();
-        socket.connect(*endpoint_iterator++, error);
-    }
-
-    if (error) {
-        connection_status = Status_t::Bad;
-        throw system_error(error);
-    }
-
-    connection_status = Status_t::Open;
+    connect(host, service);
 }
 
 Tcp::~Tcp()
@@ -60,12 +35,7 @@ Tcp::~Tcp()
 
 void Tcp::close()
 {
-    // Stop all asynchronous operations.
     io_service.stop();
-    io_work.reset();
-
-    // Stop all running threads.
-    for_each(io_threads.begin(), io_threads.end(), [](boost::thread& t) { t.join(); });
 
     // Shutdown before closing for portable graceful closures.
     socket.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
@@ -150,10 +120,29 @@ Tcp::Receive_Return_t Tcp::receive_line(error_code& ec)
     return fut;
 }
 
-void Tcp::add_io_thread()
+/* Private */
+
+void Tcp::connect(const string& host, const string& service)
 {
-    io_threads.push_back(boost::thread([&]() {
-        Tcp::io_service.run();
-        std::cerr << "io_service done!" << std::endl;
-    }));
+    // XXX use async_connect
+
+    // Get a list of endpoints corresponding to the server name.
+    boost::asio::ip::tcp::resolver resolver(io_service.get());
+    boost::asio::ip::tcp::resolver::query query(host, service);
+    auto endpoint_iterator = resolver.resolve(query);
+
+    // Try each endpoint until we successfully establish a connection.
+    boost::asio::ip::tcp::resolver::iterator end;
+    error_code error = boost::asio::error::host_not_found;
+    while (error and endpoint_iterator != end) {
+        socket.close();
+        socket.connect(*endpoint_iterator++, error);
+    }
+
+    if (error) {
+        connection_status = Status_t::Bad;
+        throw system_error(error);
+    }
+
+    connection_status = Status_t::Open;
 }

@@ -1,11 +1,14 @@
 #ifndef CPP_NETWORKING_TCP_H
 #define CPP_NETWORKING_TCP_H
 
+#include "io_service.h"
+
 #include <string>
 #include <vector>
 
 #include "boost_definitions.h"
 #include <boost/asio.hpp>
+#include <boost/thread.hpp>
 #include <boost/thread/future.hpp>
 
 namespace net {
@@ -50,14 +53,11 @@ public:
     Receive_Return_t receive_line(boost::system::error_code&);
 
 private:
-    // Add a thread to execute io_service work
-    void add_io_thread();
+    // XXX blocking
+    void connect(const std::string& host, const std::string& service);
 
     Status_t connection_status;
-
-    boost::asio::io_service io_service;
-    std::shared_ptr<boost::asio::io_service::work> io_work;
-    std::vector<boost::thread> io_threads;
+    Io_Service io_service;
 
     boost::asio::ip::tcp::socket socket;
 
