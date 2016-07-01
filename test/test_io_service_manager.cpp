@@ -1,8 +1,6 @@
 #include "io_service_manager.h"
 
 #include <catch.hpp>
-#include <memory>
-#include <string>
 
 #include "boost_definitions.h"
 #include <boost/asio.hpp>
@@ -13,7 +11,7 @@ using boost::promise;
 
 using net::Io_Service_Manager;
 
-SCENARIO("Using a default io service manager", "[io_service_manager][default][nowork]")
+SCENARIO("Using a default io service manager", "[io_service_manager][default][no-work]")
 {
     GIVEN("io service manager with no queued work")
     {
@@ -41,20 +39,18 @@ SCENARIO("Using a default io service manager", "[io_service_manager][default][no
             CHECK_NOTHROW(service.get());
         }
 
-        /*
         AND_WHEN("a worker is added")
         {
             service.add_worker();
+            service.block_until_work_complete();
 
             THEN("io_service remains stopped")
             {
-                service.block_until_work_complete();
                 CHECK(!service.is_running());
             }
         }
-        */
 
-        WHEN("manager is started")
+        WHEN("the manager is started")
         {
             service.start();
             service.block_until_work_complete();
@@ -67,12 +63,12 @@ SCENARIO("Using a default io service manager", "[io_service_manager][default][no
             THEN("starting the service again doesn't throw")
             {
                 CHECK_NOTHROW(service.start());
+                service.block_until_work_complete();
             }
         }
     }
 
-    /*
-    GIVEN("io_service with queued work")
+    GIVEN("io service manager with queued work")
     {
         Io_Service_Manager service;
 
@@ -85,12 +81,11 @@ SCENARIO("Using a default io service manager", "[io_service_manager][default][no
             }
         );
 
-        WHEN("io_serice is started")
+        WHEN("io_service is started")
         {
             service.start();
 
-            // If this blocks, then the service was never started.
-            // XXX how do I assert this?
+            // If this blocks, then the service was never started. XXX how do I assert this?
             bool val = fut.get();
 
             THEN("the work done is correct")
@@ -103,6 +98,11 @@ SCENARIO("Using a default io service manager", "[io_service_manager][default][no
                 CHECK(!service.is_running());
             }
         }
+
+        /* TODO: add the restarting test case once worker thread pool hack is fixed
+        WHEN("that work is done, more work is added, and the service is started again")
+        {
+        }
+        */
     }
-    */
 }

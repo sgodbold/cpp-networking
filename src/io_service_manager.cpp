@@ -16,6 +16,7 @@ using boost::thread;
 using net::Io_Service_Manager;
 
 using std::lock_guard;
+using std::logic_error;
 using std::make_shared;
 using std::mutex;
 using std::unique_lock;
@@ -23,7 +24,7 @@ using std::unique_lock;
 Io_Service_Manager::Io_Service_Manager() : Io_Service_Manager(Behavior_t::Default) {}
 
 Io_Service_Manager::Io_Service_Manager(Behavior_t b)
-    : behavior(b), status(Status_t::Stopped)
+    : behavior(b), status(Status_t::Stopped), stopped_threads(0)
 {
     if (is_perpetual())
     {
@@ -37,13 +38,20 @@ Io_Service_Manager::~Io_Service_Manager()
     {
         stop();
     }
+
+    if (io_thread_workers.size() > 0)
+    {
+        // XXX: hacky!
+        io_thread_workers.join_all();
+    }
 }
 
+// Start service by adding the first worker.
 void Io_Service_Manager::start()
 {
     if (is_running())
     {
-        throw std::logic_error("Io_Service_Manager is already running");
+        throw logic_error("Io_Service_Manager is already running");
     }
 
     if (is_perpetual())
@@ -54,11 +62,15 @@ void Io_Service_Manager::start()
     add_worker();
 }
 
+// Stop all worker threads and reset the service to leave in a state
+// where it can be started again.
 void Io_Service_Manager::stop()
 {
+    lock_guard<mutex> lck(io_threads_lock);
+
     if (!is_running())
     {
-        throw std::logic_error("Io Service is already stopped");
+        throw logic_error("Io_Service_Manager is already stopped");
     }
 
     if (is_perpetual())
@@ -66,11 +78,11 @@ void Io_Service_Manager::stop()
         io_work.reset();
     }
 
+    // Stop service and all worker threads.
     io_service.stop();
-
-    // Join all worker threads and clear thread container
-    for_each(io_threads.begin(), io_threads.end(), boost::mem_fn(&thread::join));
-    io_threads.clear();
+    io_thread_workers.join_all();
+    stopped_threads = 0; // XXX hacky!
+    io_threads_empty_cv.notify_all();
 
     // Prepare service to startup again.
     io_service.reset();
@@ -81,46 +93,21 @@ void Io_Service_Manager::stop()
 void Io_Service_Manager::add_worker()
 {
     lock_guard<mutex> lck(io_threads_lock);
-
-    thread t(&Io_Service_Manager::run_worker, this);
-    io_threads.push_back(std::move(t));
-    status = Status_t::Running;
+    io_thread_workers.create_thread(std::bind(&Io_Service_Manager::run_worker, this));
 }
 
 void Io_Service_Manager::run_worker()
 {
+    status = Status_t::Running;
+
     // Blocks until all work is done.
-    // If this Io_Service is perpetual it will run until either:
+    // If this Io_Service_Manager is perpetual it will run until either:
     //     1. io_work is destroyed, and all work is completed
     //     2. io_service is stopped
     Io_Service_Manager::io_service.run();
 
-    remove_worker(boost::this_thread::get_id());
-}
-
-void Io_Service_Manager::remove_worker(thread::id id)
-{
     lock_guard<mutex> lck(io_threads_lock);
-
-    // Find and remove thread object with given id.
-    auto erase_it = find_if(io_threads.begin(), io_threads.end(),
-        [id](const boost::thread& t)
-        {
-            return t.get_id() == id;
-        }
-    );
-
-    if (erase_it == io_threads.end())
-    {
-        throw std::logic_error("Can't remove worker thread. Id not found");
-    }
-    else
-    {
-        // XXX this thread deleting it's own thread object causes SIGABRT
-        io_threads.erase(erase_it);
-    }
-
-    if(io_threads.empty())
+    if (io_thread_workers.size() == ++stopped_threads) // XXX hacky!
     {
         status = Status_t::Stopped;
         io_threads_empty_cv.notify_all();
@@ -131,7 +118,7 @@ void Io_Service_Manager::block_until_work_complete()
 {
     unique_lock<mutex> lck(io_threads_lock);
 
-    while (!io_threads.empty())
+    while (io_thread_workers.size() != stopped_threads)
     {
         io_threads_empty_cv.wait(lck);
     }

@@ -22,11 +22,11 @@ const char* port_str = "9002";
 
 string get_receive_message(std::shared_ptr<streambuf>& recv_buf);
 
-SCENARIO("TCP Client Connecting and Disconnecting", "[tcp][client]")
+SCENARIO("TCP Client Connecting and Disconnecting", "[tcp][client][connect][disconnect]")
 {
     GIVEN("a local echo server")
     {
-        Tcp_Server s(Tcp_Server::Role_t::Passive, port_int);
+        Tcp_Server s(Tcp_Server::Role_t::Echo, port_int);
 
         WHEN("a connection is opened")
         {
@@ -37,6 +37,7 @@ SCENARIO("TCP Client Connecting and Disconnecting", "[tcp][client]")
                 REQUIRE(client.status() == Tcp::Status_t::Open);
             }
 
+            /*
             AND_WHEN("a connection is closed")
             {
                 client.close();
@@ -46,6 +47,9 @@ SCENARIO("TCP Client Connecting and Disconnecting", "[tcp][client]")
                     REQUIRE(client.status() == Tcp::Status_t::Closed);
                 }
             }
+            */
+
+            client.close();
         }
     }
 }

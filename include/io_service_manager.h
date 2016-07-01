@@ -61,7 +61,6 @@ class Io_Service_Manager
         };
 
         void run_worker();
-        void remove_worker(boost::thread::id);
 
         Behavior_t behavior;
 
@@ -74,9 +73,13 @@ class Io_Service_Manager
 
         // Tracks a set of all worker threads.
         // Workers remove themselves from the set once done.
-        std::list<boost::thread> io_threads;
+        boost::thread_group io_thread_workers;
         std::mutex io_threads_lock;
         std::condition_variable io_threads_empty_cv;
+
+        // TODO: fix this hacky way of tracking # threads running. The thread_group
+        // needs to autodecrement and delete the thread objects.
+        unsigned long int stopped_threads;
 
 }; // Io_Service_Manager
 
