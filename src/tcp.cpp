@@ -20,8 +20,8 @@ using std::string;
 using std::vector;
 
 Tcp::Tcp(const std::string& host, const std::string& service)
-    : connection_status(Status_t::Connecting), io_service(Io_Service::Behavior_t::Perpetual),
-      socket(io_service.get())
+    : connection_status(Status_t::Connecting),
+      io_service(Io_Service_Manager::Behavior_t::Perpetual), socket(io_service.get())
 {
     connect(host, service);
 }

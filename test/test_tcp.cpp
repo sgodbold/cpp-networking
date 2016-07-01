@@ -22,26 +22,26 @@ const char* port_str = "9002";
 
 string get_receive_message(std::shared_ptr<streambuf>& recv_buf);
 
-SCENARIO ("TCP Client Connecting and Disconnecting", "[tcp][client]")
+SCENARIO("TCP Client Connecting and Disconnecting", "[tcp][client]")
 {
-    GIVEN ("a local echo server")
+    GIVEN("a local echo server")
     {
         Tcp_Server s(Tcp_Server::Role_t::Passive, port_int);
 
-        WHEN ("a connection is opened")
+        WHEN("a connection is opened")
         {
             Tcp client("localhost", port_str);
 
-            THEN ("it connects with no errors")
+            THEN("it connects with no errors")
             {
                 REQUIRE(client.status() == Tcp::Status_t::Open);
             }
 
-            AND_WHEN ("a connection is closed")
+            AND_WHEN("a connection is closed")
             {
                 client.close();
 
-                THEN ("it disconnects with no errors")
+                THEN("it disconnects with no errors")
                 {
                     REQUIRE(client.status() == Tcp::Status_t::Closed);
                 }
@@ -50,9 +50,9 @@ SCENARIO ("TCP Client Connecting and Disconnecting", "[tcp][client]")
     }
 }
 
-SCENARIO ("TCP Client Sending Messages", "[tcp][client][send]")
+SCENARIO("TCP Client Sending Messages", "[tcp][client][send]")
 {
-    GIVEN ("a local echo server and connection")
+    GIVEN("a local echo server and connection")
     {
         Tcp_Server s(Tcp_Server::Role_t::Echo, port_int);
         Tcp client("localhost", port_str);
@@ -68,33 +68,33 @@ SCENARIO ("TCP Client Sending Messages", "[tcp][client][send]")
             send_buffers.push_back(buffer(send_message));
         }
 
-        WHEN ("a const buffer is sent")
+        WHEN("a const buffer is sent")
         {
             boost::system::error_code ec;
             auto send_fut = client.send(send_buf, ec);
             
-            THEN ("there are no errors")
+            THEN("there are no errors")
             {
                 REQUIRE(!ec);
             }
 
-            THEN ("the correct length was sent")
+            THEN("the correct length was sent")
             {
                 CHECK(send_fut.get() == send_message.size());
             }
         }
 
-        WHEN ("a vector of const buffers is sent")
+        WHEN("a vector of const buffers is sent")
         {
             boost::system::error_code ec;
             auto send_fut = client.send(send_buffers, ec);
 
-            THEN ("there are no errors")
+            THEN("there are no errors")
             {
                 REQUIRE(!ec);
             }
 
-            THEN ("the correct length was sent")
+            THEN("the correct length was sent")
             {
                 CHECK(send_fut.get() == num_send_buffers * send_message.size());
             }
@@ -102,9 +102,9 @@ SCENARIO ("TCP Client Sending Messages", "[tcp][client][send]")
     }
 }
 
-SCENARIO ("TCP Client Receiving Messages", "[tcp][client][receive]")
+SCENARIO("TCP Client Receiving Messages", "[tcp][client][receive]")
 {
-    GIVEN ("a local echo server and connection")
+    GIVEN("a local echo server and connection")
     {
         Tcp_Server s(Tcp_Server::Role_t::Echo, port_int);
         Tcp client("localhost", port_str);
@@ -117,19 +117,19 @@ SCENARIO ("TCP Client Receiving Messages", "[tcp][client][receive]")
 
         REQUIRE(!ec);
 
-        WHEN ("receive a message of a specific size")
+        WHEN("receive a message of a specific size")
         {
             // Receive 'hello' from the server
             auto recv_fut = client.receive(5, ec);
             auto recv_buf = recv_fut.get();
             string expected = "hello";
 
-            THEN ("there are no errors")
+            THEN("there are no errors")
             {
                 REQUIRE(!ec);
             }
 
-            THEN ("the correct message was received")
+            THEN("the correct message was received")
             {
                 string received_message = get_receive_message(recv_buf);
                 CAPTURE(received_message);
@@ -138,22 +138,22 @@ SCENARIO ("TCP Client Receiving Messages", "[tcp][client][receive]")
         }
 
         // XXX failing. probably because of the server
-        WHEN ("a lined message is received")
+        WHEN("a lined message is received")
         {
             auto recv_fut = client.receive_line(ec);
             auto recv_buf = recv_fut.get();
 
-            THEN ("there are no errors")
+            THEN("there are no errors")
             {
                 REQUIRE(!ec);
             }
 
-            THEN ("the correct length was received")
+            THEN("the correct length was received")
             {
                 CHECK(recv_buf->size() == send_message.size());
             }
 
-            THEN ("the correct message was received")
+            THEN("the correct message was received")
             {
                 string received_message = get_receive_message(recv_buf);
                 CAPTURE(received_message);

@@ -1,7 +1,7 @@
 #ifndef CPP_NETWORKING_TCP_H
 #define CPP_NETWORKING_TCP_H
 
-#include "io_service.h"
+#include "io_service_manager.h"
 
 #include <string>
 #include <vector>
@@ -57,7 +57,7 @@ private:
     void connect(const std::string& host, const std::string& service);
 
     Status_t connection_status;
-    Io_Service io_service;
+    Io_Service_Manager io_service;
 
     boost::asio::ip::tcp::socket socket;
 
