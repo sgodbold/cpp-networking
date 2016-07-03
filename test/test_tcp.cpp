@@ -49,6 +49,7 @@ SCENARIO("TCP Client Connecting and Disconnecting", "[tcp][client][connect][disc
             }
             */
 
+            // XXX blocking...
             client.close();
         }
     }

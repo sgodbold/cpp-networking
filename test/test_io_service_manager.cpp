@@ -11,9 +11,9 @@ using boost::promise;
 
 using net::Io_Service_Manager;
 
-SCENARIO("Using a default io service manager", "[io_service_manager][default][no-work]")
+SCENARIO("Using a default io service manager", "[io_service_manager][default]")
 {
-    GIVEN("io service manager with no queued work")
+    GIVEN("no queued work")
     {
         Io_Service_Manager service;
 
@@ -68,7 +68,7 @@ SCENARIO("Using a default io service manager", "[io_service_manager][default][no
         }
     }
 
-    GIVEN("io service manager with queued work")
+    GIVEN("queued work")
     {
         Io_Service_Manager service;
 
@@ -104,5 +104,48 @@ SCENARIO("Using a default io service manager", "[io_service_manager][default][no
         {
         }
         */
+    }
+}
+
+SCENARIO("Using a perpetual io service manager", "[io_service_manager][perpetual]")
+{
+    GIVEN("no queued work")
+    {
+        Io_Service_Manager service(Io_Service_Manager::Behavior_t::Perpetual);
+
+        THEN("it is running")
+        {
+            CHECK(service.is_running());
+        }
+
+        THEN("it is perpetual")
+        {
+            CHECK(service.is_perpetual());
+        }
+
+        THEN("starting it throws")
+        {
+            CHECK_THROWS(service.start());
+        }
+
+        THEN("getting the internal service doesn't throw")
+        {
+            CHECK_NOTHROW(service.get());
+        }
+
+        THEN("adding another worker doesn't throw")
+        {
+            CHECK_NOTHROW(service.add_worker());
+        }
+
+        WHEN("the service is stopped")
+        {
+            service.stop(); // XXX blocks
+
+            THEN("it is no longer running")
+            {
+                CHECK(!service.is_running());
+            }
+        }
     }
 }

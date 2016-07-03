@@ -27,16 +27,20 @@ class Io_Service_Manager
 
         // Create a specific io_service. If set to perpetual then one worker
         // thread will automatically start running jobs.
+        // Blocks until completely started
         Io_Service_Manager(Behavior_t);
 
+        // Blocks until completely stopped.
         ~Io_Service_Manager();
 
         // Start running the io_service. This runs one worker thread.
         // Throws logic_error if already started.
+        // Blocks until completely started
         void start();
 
         // Stops the io_service and all worker threads.
         // Throws logic_error if already stopped.
+        // Blocks until completely stopped.
         void stop();
 
         // Adds a new worker thread to run jobs.

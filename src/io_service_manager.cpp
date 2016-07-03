@@ -29,6 +29,7 @@ Io_Service_Manager::Io_Service_Manager(Behavior_t b)
     if (is_perpetual())
     {
         start();
+
     }
 }
 
