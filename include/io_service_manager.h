@@ -44,7 +44,7 @@ class Io_Service_Manager
         void stop();
 
         // Adds a new worker thread to run jobs.
-        void add_worker();
+        // TODO: void add_worker();
 
         boost::asio::io_service& get()
             { return io_service; }
@@ -55,7 +55,7 @@ class Io_Service_Manager
         bool is_perpetual()
             { return behavior == Behavior_t::Perpetual; }
 
-        void block_until_work_complete();
+        void block_until_stopped();
 
     private:
         enum class Status_t
@@ -68,8 +68,6 @@ class Io_Service_Manager
 
         Behavior_t behavior;
 
-        // Changed to Running by the first worker thread.
-        // Changed to Stopped by the last worker thread.
         Status_t status;
 
         boost::asio::io_service io_service;
@@ -77,13 +75,9 @@ class Io_Service_Manager
 
         // Tracks a set of all worker threads.
         // Workers remove themselves from the set once done.
-        boost::thread_group io_thread_workers;
+        std::shared_ptr<boost::thread> io_thread_worker;
         std::mutex io_threads_lock;
         std::condition_variable io_threads_empty_cv;
-
-        // TODO: fix this hacky way of tracking # threads running. The thread_group
-        // needs to autodecrement and delete the thread objects.
-        unsigned long int stopped_threads;
 
 }; // Io_Service_Manager
 
