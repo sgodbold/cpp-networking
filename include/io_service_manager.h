@@ -2,13 +2,28 @@
 #define CPP_NETWORKING_IO_SERVICE_H
 
 #include <condition_variable>
-#include <map>
 #include <memory>
 #include <mutex>
 
 #include "boost_definitions.h"
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
+
+/* Io_Service_Manager
+ *
+ * Overview:
+ * This class manages a boost io_service object to simplify the operations of
+ * running one.
+ *
+ * Design:
+ * There are 4 states (constructing, destructing, running, stopped) with respective
+ * functions to move between the states. State changes must be atomic given how many
+ * threads are involved in io work.
+ *
+ * Behaviors:
+ * Default: io_service object automatically stops once queued work is complete
+ * Perpetual: io_service object must be manually stopped
+ */
 
 namespace net
 {
@@ -27,57 +42,64 @@ class Io_Service_Manager
 
         // Create a specific io_service. If set to perpetual then one worker
         // thread will automatically start running jobs.
-        // Blocks until completely started
+        // Atomically changes the state depending on behavior
         Io_Service_Manager(Behavior_t);
 
         // Blocks until completely stopped.
+        // Atomically changes the state to stopped then to destructing
         ~Io_Service_Manager();
 
         // Start running the io_service. This runs one worker thread.
         // Throws logic_error if already started.
-        // Blocks until completely started
+        // Atomically changes the state
         void start();
 
         // Stops the io_service and all worker threads.
         // Throws logic_error if already stopped.
-        // Blocks until completely stopped.
+        // Atomically changes the state
         void stop();
-
-        // Adds a new worker thread to run jobs.
-        // TODO: void add_worker();
 
         boost::asio::io_service& get()
             { return io_service; }
 
         bool is_running()
-            { return status == Status_t::Running; }
+            { return state == State_t::Running; }
 
         bool is_perpetual()
             { return behavior == Behavior_t::Perpetual; }
 
         void block_until_stopped();
+        void block_until_running();
 
     private:
-        enum class Status_t
+        enum class State_t
         {
+            Destructing,
             Running,
             Stopped,
         };
 
         void run_worker();
 
-        Behavior_t behavior;
+        // Changes to the start state. Only call this with the state change lock acquired.
+        void to_start_state();
 
-        Status_t status;
+        // Changes to the stop state. Only call this with the state change lock acquired.
+        void to_stop_state();
+
+        Behavior_t behavior;
+        State_t state;
 
         boost::asio::io_service io_service;
         std::shared_ptr<boost::asio::io_service::work> io_work;
-
-        // Tracks a set of all worker threads.
-        // Workers remove themselves from the set once done.
         std::shared_ptr<boost::thread> io_thread_worker;
-        std::mutex io_threads_lock;
-        std::condition_variable io_threads_empty_cv;
+
+        // Locks
+        std::mutex state_change_lock;
+
+        // Conditions
+        // std::condition_variable service_stopped_cv;
+        // std::condition_variable service_started_cv;
 
 }; // Io_Service_Manager
 
