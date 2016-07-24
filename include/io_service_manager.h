@@ -98,8 +98,8 @@ class Io_Service_Manager
         std::mutex state_change_lock;
 
         // Conditions
-        // std::condition_variable service_stopped_cv;
-        // std::condition_variable service_started_cv;
+        std::condition_variable service_stopped_cv;
+        std::condition_variable service_started_cv;
 
 }; // Io_Service_Manager
 

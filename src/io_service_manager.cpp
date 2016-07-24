@@ -56,7 +56,7 @@ void Io_Service_Manager::start()
     // Top level state change function. Everything must be atomic.
     lock_guard<mutex> lck(state_change_lock);
     to_start_state();
-    // service_started_cv.notify_all();
+    service_started_cv.notify_all();
 }
 
 void Io_Service_Manager::stop()
@@ -64,7 +64,7 @@ void Io_Service_Manager::stop()
     // Top level state change function. Everything must be atomic.
     lock_guard<mutex> lck(state_change_lock);
     to_stop_state();
-    // service_stopped_cv.notify_all();
+    service_stopped_cv.notify_all();
 }
 
 // Start service by adding the first worker.
@@ -142,24 +142,20 @@ void Io_Service_Manager::run_worker()
 
 void Io_Service_Manager::block_until_stopped()
 {
-    /*
     unique_lock<mutex> lck(state_change_lock);
 
     while (state != State_t::Stopped)
     {
         service_stopped_cv.wait(lck);
     }
-    */
 }
 
 void Io_Service_Manager::block_until_running()
 {
-    /*
     unique_lock<mutex> lck(state_change_lock);
 
     while (state != State_t::Stopped)
     {
         service_started_cv.wait(lck);
     }
-    */
 }

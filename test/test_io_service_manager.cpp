@@ -15,7 +15,6 @@ SCENARIO("Using a default io service manager", "[io_service_manager][default]")
 {
     Io_Service_Manager service;
 
-    /* Check initial state */
     THEN("it is not perpetual")
     {
         CHECK(!service.is_perpetual());
@@ -124,6 +123,21 @@ SCENARIO("Using a perpetual io service manager", "[io_service_manager][perpetual
             {
                 CHECK(service.is_perpetual());
             }
+
+            AND_WHEN("the service is started again")
+            {
+                service.start();
+
+                THEN("it is in the running state")
+                {
+                    CHECK(service.is_running());
+                }
+
+                THEN("it is perpetual")
+                {
+                    CHECK(service.is_perpetual());
+                }
+            }
         }
     }
 
@@ -150,5 +164,48 @@ SCENARIO("Using a perpetual io service manager", "[io_service_manager][perpetual
         {
             CHECK(service.is_running());
         }
+
+        WHEN("the service is stopped")
+        {
+            service.stop();
+
+            THEN("it is in the stopped state")
+            {
+                CHECK(!service.is_running());
+            }
+
+            AND_WHEN("more work is added and the service is started again")
+            {
+                promise<bool> prom;
+                future<bool> fut = prom.get_future();
+
+                service.get().dispatch([&]()
+                    {
+                        prom.set_value(true); 
+                    }
+                );
+
+                service.start();
+
+                // If this blocks, then the service was never started. XXX how do I assert this?
+                bool val = fut.get();
+
+                THEN("it is in the running state")
+                {
+                    CHECK(service.is_running());
+                }
+
+                THEN("it is perpetual")
+                {
+                    CHECK(service.is_perpetual());
+                }
+
+                THEN("the work done is correct")
+                {
+                    CHECK(val == true);
+                }
+            }
+        }
+
     }
 }
