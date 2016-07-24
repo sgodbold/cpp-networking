@@ -17,8 +17,8 @@ using net::Tcp_Server;
 
 using std::string;
 
-const int port_int = 9002;
-const char* port_str = "9002";
+const int port_int = 9003;
+const char* port_str = "9003";
 
 string get_receive_message(std::shared_ptr<streambuf>& recv_buf);
 
@@ -37,7 +37,6 @@ SCENARIO("TCP Client Connecting and Disconnecting", "[tcp][client][connect][disc
                 REQUIRE(client.status() == Tcp::Status_t::Open);
             }
 
-            /*
             AND_WHEN("a connection is closed")
             {
                 client.close();
@@ -47,10 +46,6 @@ SCENARIO("TCP Client Connecting and Disconnecting", "[tcp][client][connect][disc
                     REQUIRE(client.status() == Tcp::Status_t::Closed);
                 }
             }
-            */
-
-            // XXX blocking...
-            client.close();
         }
     }
 }

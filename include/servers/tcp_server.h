@@ -1,6 +1,7 @@
 #ifndef CPP_NETWORKING_TCP_SERVER_H
 #define CPP_NETWORKING_TCP_SERVER_H
 
+#include "io_service_manager.h"
 #include "servers/tcp_base_session.h"
 
 #include <iostream>
@@ -34,15 +35,9 @@ private:
 
     void new_connection(boost::asio::ip::tcp::socket);
 
-    // XXX move this to it's own class
-    void add_io_thread();
-
     const Role_t server_role;
 
-    // XXX move to separate class
-    boost::asio::io_service io_service;
-    std::shared_ptr<boost::asio::io_service::work> io_work;
-    std::vector<boost::thread> io_threads;
+    Io_Service_Manager io_service;
     std::shared_ptr<boost::thread> accept_thread;
 
     boost::asio::ip::tcp::acceptor acceptor;

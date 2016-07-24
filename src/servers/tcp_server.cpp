@@ -1,5 +1,6 @@
 #include "servers/tcp_server.h"
 
+#include "io_service_manager.h"
 #include "servers/tcp_echo_session.h"
 #include "servers/tcp_passive_session.h"
 
@@ -9,6 +10,7 @@
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
 
+using net::Io_Service_Manager;
 using net::Tcp_Server;
 
 using boost::asio::ip::tcp;
@@ -20,21 +22,16 @@ using std::shared_ptr;
 using std::string;
 
 Tcp_Server::Tcp_Server(Role_t role, short port)
-    : server_role(role), io_service(), // io_work(io_service),
-      acceptor(io_service, tcp::endpoint(tcp::v4(), port)), socket(io_service)
+    : server_role(role), io_service(Io_Service_Manager::Behavior_t::Perpetual),
+      acceptor(io_service.get(), tcp::endpoint(tcp::v4(), port)), socket(io_service.get())
 {
-    add_io_thread();
     accept_thread = make_shared<boost::thread>(&Tcp_Server::do_accept, this);
 }
 
 Tcp_Server::~Tcp_Server()
 {
-    // Stop all asynchronous operations
     io_service.stop();
-    io_work.reset();
 
-    // Stop all threads running
-    for_each(io_threads.begin(), io_threads.end(), [](boost::thread& t) { t.join(); });
     accept_thread->join();
 
     // Release socket
@@ -76,12 +73,4 @@ void Tcp_Server::new_connection(boost::asio::ip::tcp::socket s)
     };
 
     std:: cout << "Session Created" << std::endl;
-}
-
-void Tcp_Server::add_io_thread()
-{
-    io_work = make_shared<boost::asio::io_service::work>(io_service);
-    io_threads.push_back(boost::thread([&]() {
-        Tcp_Server::io_service.run();
-    }));
 }
