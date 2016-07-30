@@ -74,7 +74,7 @@ class Io_Service_Manager
     private:
         enum class State_t
         {
-            Destructing,
+            Destructing, // XXX not currently in use
             Running,
             Stopped,
         };
