@@ -19,6 +19,7 @@ using std::shared_ptr; using std::make_shared;
 using std::string;
 using std::vector;
 
+// Starts connection with the server host
 Tcp::Tcp(const std::string& host, const std::string& service)
     : connection_status(Status_t::Connecting),
       io_service(Io_Service_Manager::Behavior_t::Perpetual), socket(io_service.get())
@@ -26,6 +27,7 @@ Tcp::Tcp(const std::string& host, const std::string& service)
     connect(host, service);
 }
 
+// Closes the connection if it is still open
 Tcp::~Tcp()
 {
     if(connection_status == Status_t::Open) {
@@ -33,6 +35,7 @@ Tcp::~Tcp()
     }
 }
 
+// Stops I/O service operations, closes out the socket, sets state to Closed.
 void Tcp::close()
 {
     io_service.stop();
@@ -72,6 +75,23 @@ Tcp::Send_Return_t Tcp::send(vector<const_buffer>& req, error_code& ec)
     return fut;
 }
 
+Tcp::Send_Return_t Tcp::send(const string& str, error_code& ec)
+{
+    // XXX don't send data that lives on the stack!
+    const_buffer send_buf(buffer(str));
+    return send(send_buf, ec);
+}
+
+Tcp::Send_Return_t Tcp::send(const int number, error_code& ec)
+{
+    // XXX don't send data that lives on the stack!
+    string val = std::to_string(number);
+    const_buffer send_buf(buffer(val));
+    return send(send_buf, ec);
+}
+
+// XXX untested
+// Receive until an error is received.
 Tcp::Receive_Return_t Tcp::receive(error_code&)
 {
     auto prom = make_shared<promise<shared_ptr<streambuf>>>();
@@ -88,6 +108,8 @@ Tcp::Receive_Return_t Tcp::receive(error_code&)
     return fut;
 }
 
+// XXX untested
+// Receive a specific size.
 Tcp::Receive_Return_t Tcp::receive(size_t size, error_code& ec)
 {
     auto prom = make_shared<promise<shared_ptr<streambuf>>>();
@@ -104,13 +126,14 @@ Tcp::Receive_Return_t Tcp::receive(size_t size, error_code& ec)
     return fut;
 }
 
-Tcp::Receive_Return_t Tcp::receive_line(error_code& ec)
+// XXX untested
+Tcp::Receive_Return_t Tcp::receive(std::string pattern, error_code& ec)
 {
     auto prom = make_shared<promise<shared_ptr<streambuf>>>();
     auto fut = prom->get_future();
     auto response = make_shared<streambuf>();
 
-    async_read_until(socket, *response, '\n', [prom, response](const error_code& ec, size_t len)
+    async_read_until(socket, *response, pattern, [prom, response](const error_code& ec, size_t len)
         {
             // XXX check errors
             prom->set_value(response);
@@ -120,11 +143,9 @@ Tcp::Receive_Return_t Tcp::receive_line(error_code& ec)
     return fut;
 }
 
-/* Private */
-
 void Tcp::connect(const string& host, const string& service)
 {
-    // XXX use async_connect
+    // XXX use async_connect?
 
     // Get a list of endpoints corresponding to the server name.
     boost::asio::ip::tcp::resolver resolver(io_service.get());

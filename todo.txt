@@ -1,6 +1,10 @@
 /* All */
 Add boost logging to replace couts
 
+/* Tcp */
+Investigate asynchronous connect
+Test recieve functions [dependent on better Tcp_Server sending functions]
+
 /* Io_Service_Manager */
 Implement default behavior
 Implement worker thread pools
@@ -8,3 +12,4 @@ Implement worker thread pools
 /* Tcp_Server(s) */
 Auto select an open port
 Implement 2 read methods (by size and by pattern)
+Disconnect connected clients on destruction

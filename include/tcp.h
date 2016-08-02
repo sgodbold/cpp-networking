@@ -35,22 +35,34 @@ public:
 
     void close();
 
-    // Send a buffer
+    /* Sending Data:
+     *
+     * All send operations are asynchronous and immediately return a future.
+     *
+     * Make sure that the data being sent will continue to exist as long as
+     * the operation continues.
+     *
+     * TODO: set error codes
+     */
     Send_Return_t send(boost::asio::const_buffer&, boost::system::error_code&);
-
-    // Send multiple buffers
     Send_Return_t send(std::vector<boost::asio::const_buffer>&, boost::system::error_code&);
+    Send_Return_t send(const std::string&, boost::system::error_code&);
+    Send_Return_t send(const int, boost::system::error_code&);
 
-    // XXX templated send?? enable sending strings, numbers, etc
-
-    // Receive until an error occurs
+    /* Receiving Data:
+     *
+     * All receive operations are asynchronous and immediately return a future.
+     *
+     * There are 3 core receive operations:
+     * 1. Receive until an error occurs (such as EOF)
+     * 2. Recieve a length of data
+     * 3. Recieve until a pattern
+     *
+     * TODO: set error codes
+     */
     Receive_Return_t receive(boost::system::error_code&);
-
-    // Receive a specific number of bytes
-    Receive_Return_t receive(size_t, boost::system::error_code&);
-
-    // Receive until a newline character
-    Receive_Return_t receive_line(boost::system::error_code&);
+    Receive_Return_t receive(size_t size, boost::system::error_code&);
+    Receive_Return_t receive(std::string pattern, boost::system::error_code&);
 
 private:
     // XXX blocking

@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
             const_buffer send_buf(buffer(input));
             auto send_fut = client.send(send_buf, ec);
             cout << "Sent " << send_fut.get() << " bytes" << endl;
-            auto res_fut = client.receive_line(ec);
+            auto res_fut = client.receive("\n", ec);
 
             // Convert response buffer to string
             shared_ptr<streambuf> res_buf = res_fut.get();
