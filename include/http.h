@@ -49,14 +49,16 @@ public:
 
     boost::future<Http_Response> patch(const std::string& path, boost::asio::const_buffer& body);
 
-    // Setters used to construct a request
+    // Setters used to construct every request
     void add_header(const std::string& name, const std::string& value)
         { headers[name] = value; }
     void remove_header(const std::string& name)
         { headers.erase(name); }
+    void reset_headers()
+        { headers.clear(); }
 
 private:
-    Tcp connection;
+    Tcp tcp_client;
     const std::string& host;
     std::string http_version;
     std::map<std::string, std::string> headers;

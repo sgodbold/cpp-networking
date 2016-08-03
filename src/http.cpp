@@ -32,17 +32,24 @@ static string get_response_line(string& data);
 static const_buffer no_body;
 
 Http::Http(const string& host_)
-    : connection(host_, "http"), host(host_), http_version(http_version_)
+    : tcp_client(host_, "http"), host(host_), http_version(http_version_)
 {
     // Request that the server closes the socket after sending a response.
+    // XXX from RFC 7230 Section 6.1:
+    // "The "close" connection option is defined for a sender to signal that
+    //  this connection will be closed after completion of the response."
+    // So this should not be used in every request otherwise the connection is
+    // closed after every request
     add_header("Connection", "close");
 }
 
 // XXX now that sends / receives are asynchronous all requests / responses must be atomically
 // paired up. 1 thread can't process multiple responses from the same socket. Maybe have a 
 // queue for 1 socket or connect a new socket for every request?
+// NOTE: sockets are only file descriptors and cost a little ram. A new socket for each
+// request might not be a bad solution.
 future<Http_Response> Http::request(const std::string& method, const std::string& path,
-                                          const_buffer& body)
+                                    const_buffer& body)
 {
     boost::promise<Http_Response> prom;
     future<Http_Response> fut = prom.get_future();
@@ -55,7 +62,7 @@ future<Http_Response> Http::request(const std::string& method, const std::string
 
     // Send request then receive response then notify the returned future.
     error_code send_ec;
-    connection.send(req, send_ec).then([&](future<size_t> f) -> void {
+    tcp_client.send(req, send_ec).then([&](future<size_t> f) -> void {
         /*size_t len = */f.get();
 
         if(send_ec) {
@@ -64,7 +71,7 @@ future<Http_Response> Http::request(const std::string& method, const std::string
 
         /* XXX won't compile
         error_code recv_ec;
-        connection.receive(recv_ec).then([&](future<string> f) -> void {
+        tcp_client.receive(recv_ec).then([&](future<string> f) -> void {
             string data = f.get();
             
             if(recv_ec) {

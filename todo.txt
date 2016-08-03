@@ -1,9 +1,12 @@
 /* All */
 Add boost logging to replace couts
+Go over Google style guide
 
 /* Tcp */
-Investigate asynchronous connect
+Investigate asynchronous connect / disconnect
 Test recieve functions [dependent on better Tcp_Server sending functions]
+Handle error codes
+Investigate switching to a state pattern
 
 /* Io_Service_Manager */
 Implement default behavior

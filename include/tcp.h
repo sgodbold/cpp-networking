@@ -31,13 +31,14 @@ public:
     // XXX blocking
     ~Tcp();
 
+    // XXX replace with specific state checks
     Status_t status() { return connection_status; }
 
     void close();
 
     /* Sending Data:
      *
-     * All send operations are asynchronous and immediately return a future.
+     * All send operations are asynchronous and immediately return a future containing size sent.
      *
      * Make sure that the data being sent will continue to exist as long as
      * the operation continues.
@@ -51,7 +52,7 @@ public:
 
     /* Receiving Data:
      *
-     * All receive operations are asynchronous and immediately return a future.
+     * All receive operations are asynchronous and immediately return a future containing data.
      *
      * There are 3 core receive operations:
      * 1. Receive until an error occurs (such as EOF)

@@ -15,14 +15,15 @@
  * This class manages a boost io_service object to simplify the operations of
  * running one.
  *
+ * Behaviors:
+ * Default: io_service object automatically stops once queued work is complete
+ * Perpetual: io_service object must be manually stopped
+ *
  * Design:
  * There are 4 states (constructing, destructing, running, stopped) with respective
  * functions to move between the states. State changes must be atomic given how many
  * threads are involved in io work.
  *
- * Behaviors:
- * Default: io_service object automatically stops once queued work is complete
- * Perpetual: io_service object must be manually stopped
  */
 
 namespace net
