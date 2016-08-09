@@ -1,17 +1,20 @@
 #ifndef CPP_NETWORKING_TCP_POOL_H
 #define CPP_NETWORKING_TCP_POOL_H
 
+#include "io_service_manager.h"
 #include "tcp.h"
 
 #include <chrono>
+#include <iostream>
 #include <memory>
 #include <queue>
 #include <string>
 
 #include "boost_definitions.h"
 #include <boost/asio/deadline_timer.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 
-/* Tcp_Pool
+/* Tcp_Pool and Tcp_Guard
  *
  * Overview:
  * This class manages and caches a collection of TCP connections to a single host.
@@ -37,14 +40,18 @@
 namespace net
 {
 
-class Tcp_Pool
+class Tcp_Pool : public std::enable_shared_from_this<Tcp_Pool>
 {
     public:
         class Tcp_Guard; // forward declared
 
-        static std::shared_ptr<Tcp_Pool> create_new_pool(const std::string& host,
-                                                         const std::string& service,
-                                                         int timeout_milli);
+        using Timed_Tcp_Connection_t = std::pair<std::unique_ptr<net::Tcp>,
+                                                 std::shared_ptr<boost::asio::deadline_timer>>;
+
+        static std::shared_ptr<Tcp_Pool> create(
+                const std::string& host,
+                const std::string& service,
+                boost::posix_time::time_duration duration);
 
         ~Tcp_Pool();
 
@@ -53,7 +60,7 @@ class Tcp_Pool
     private:
         Tcp_Pool(const std::string& host,
                  const std::string& service,
-                 int milliseconds_timeout);
+                 boost::posix_time::time_duration duration);
 
         void put_connection(std::unique_ptr<net::Tcp> tcp_client);
 
@@ -61,12 +68,15 @@ class Tcp_Pool
 
         // Queue of cached connections. The top connection is the oldest. The bottom
         // connection is the youngest.
-        std::queue< std::pair< net::Tcp, boost::asio::deadline_timer > > connections;
-        std::mutex connection_lock;
+        std::queue<Timed_Tcp_Connection_t> connections;
+        std::mutex connections_lock;
 
         const std::string host;
         const std::string service;
-        const boost::posix_time::ptime timout;
+        const boost::posix_time::time_duration timeout;
+
+        // Needed to execute deadline timers and disconnect connections.
+        Io_Service_Manager io_service_manager;
 };
 
 class Tcp_Pool::Tcp_Guard
@@ -78,6 +88,21 @@ class Tcp_Pool::Tcp_Guard
         // Destroying the guard will automatically place the tcp
         // connection back in the pool and reset the timeout period.
         ~Tcp_Guard();
+
+        Tcp_Guard(Tcp_Guard&& other) = default;
+        Tcp_Guard& operator=(Tcp_Guard&& other) = default;
+
+        // Disallow copy construction and assignment.
+        Tcp_Guard(const Tcp_Guard&) = delete;
+        Tcp_Guard& operator=(const Tcp_Guard&) = delete;
+
+        // XXX is this an unsafe way to allow access for function calls on the client?
+        // would an interface be better? A benefit to this method is single point of
+        // maintenance on function signature changes.
+        Tcp& operator*()
+            { return *tcp_client; }
+        Tcp* operator->()
+            { return &(*tcp_client); }
 
     private:
         std::unique_ptr<net::Tcp> tcp_client;
