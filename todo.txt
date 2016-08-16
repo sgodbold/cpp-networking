@@ -7,6 +7,7 @@ Investigate asynchronous connect / disconnect
 Test recieve functions [dependent on better Tcp_Server sending functions]
 Handle error codes
 Investigate switching to a state pattern
+Handle server disconnections
 
 /* Io_Service_Manager */
 Implement default behavior
