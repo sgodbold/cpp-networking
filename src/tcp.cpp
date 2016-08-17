@@ -8,14 +8,21 @@
 #include <boost/asio.hpp>
 #include <boost/thread/future.hpp>
 
-using boost::asio::const_buffer; using boost::asio::buffer; using boost::asio::streambuf;
-using boost::asio::async_write; using boost::asio::async_read; using boost::asio::async_read_until;
-using boost::future; using boost::promise;
-using boost::system::error_code; using boost::system::system_error;
+using boost::asio::async_read;
+using boost::asio::async_read_until;
+using boost::asio::async_write;
+using boost::asio::buffer;
+using boost::asio::const_buffer;
+using boost::asio::streambuf;
+using boost::future;
+using boost::promise;
+using boost::system::error_code;
+using boost::system::system_error;
 
 using net::Tcp;
 
-using std::shared_ptr; using std::make_shared;
+using std::shared_ptr;
+using std::make_shared;
 using std::string;
 using std::vector;
 
@@ -30,7 +37,8 @@ Tcp::Tcp(const std::string& host, const std::string& service)
 // Closes the connection if it is still open
 Tcp::~Tcp()
 {
-    if(is_open()) {
+    if (is_open())
+    {
         close();
     }
 }
@@ -162,12 +170,14 @@ void Tcp::connect(const string& host, const string& service)
     // Try each endpoint until we successfully establish a connection.
     boost::asio::ip::tcp::resolver::iterator end;
     error_code error = boost::asio::error::host_not_found;
-    while (error and endpoint_iterator != end) {
+    while (error and endpoint_iterator != end)
+    {
         socket.close();
         socket.connect(*endpoint_iterator++, error);
     }
 
-    if (error) {
+    if (error)
+    {
         connection_status = Status_t::Bad;
         throw system_error(error);
     }

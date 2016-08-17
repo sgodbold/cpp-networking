@@ -12,11 +12,13 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/thread/future.hpp>
 
-using boost::asio::const_buffer; using boost::asio::mutable_buffer;
-using boost::asio::streambuf;
+using boost::asio::const_buffer;
+using boost::asio::mutable_buffer;
 using boost::asio::read_until;
+using boost::asio::streambuf;
 using boost::future;
-using boost::system::error_code; using boost::system::system_error;
+using boost::system::error_code;
+using boost::system::system_error;
 
 using net::Http;
 using net::Http_Response;
@@ -65,7 +67,8 @@ future<Http_Response> Http::request(const std::string& method, const std::string
     tcp_client.send(req, send_ec).then([&](future<size_t> f) -> void {
         /*size_t len = */f.get();
 
-        if(send_ec) {
+        if (send_ec)
+        {
             // receive error response / clear socket buffer?
         }
 
@@ -74,7 +77,8 @@ future<Http_Response> Http::request(const std::string& method, const std::string
         tcp_client.receive(recv_ec).then([&](future<string> f) -> void {
             string data = f.get();
             
-            if(recv_ec) {
+            if (recv_ec)
+            {
                 // XXX
             }
             
@@ -173,7 +177,8 @@ Http_Response Http::make_response(string& data)
     string line;
     while (true) {
         line = get_response_line(data);
-        if (line.empty()) {
+        if (line.empty())
+        {
             // stop at spacer
             break;
         }

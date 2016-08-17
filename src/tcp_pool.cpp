@@ -44,7 +44,7 @@ Tcp_Pool::Tcp_Guard Tcp_Pool::get()
     unique_ptr<Tcp> client;
 
     // If there are no connections in the pool create a new one.
-    if(connections.empty())
+    if (connections.empty())
     {
         std::cout << "creating new connection for the pool" << std::endl;
         client = make_unique<Tcp>(host, service);
@@ -117,7 +117,7 @@ Tcp_Pool::Tcp_Guard::~Tcp_Guard()
 {
     std::cout << "destructing guard" << std::endl;
     auto sp = tcp_client_owner.lock();
-    if(sp and tcp_client->status() == Tcp::Status_t::Open)
+    if (sp and tcp_client->status() == Tcp::Status_t::Open)
     {
         std::cout << "putting connection back" << std::endl;
         sp->put_connection(move(tcp_client));

@@ -13,8 +13,10 @@ using boost::system::error_code;
 
 using net::Tcp_Passive_Session;
 
-using std::shared_ptr; using std::make_shared;
-using std::cout; using std::endl;
+using std::cout;
+using std::endl;
+using std::make_shared;
+using std::shared_ptr;
 
 Tcp_Passive_Session::Tcp_Passive_Session(boost::asio::ip::tcp::socket socket)
     : net::Tcp_Base_Session(std::move(socket))

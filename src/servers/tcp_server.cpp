@@ -49,7 +49,8 @@ void Tcp_Server::do_accept()
     acceptor.async_accept(socket, [this](error_code ec)
         {
             std::cout << "Accepted" << std::endl;
-            if (!ec) {
+            if (!ec)
+            {
                 new_connection(std::move(socket));
             }
 
@@ -61,7 +62,8 @@ void Tcp_Server::do_accept()
 
 void Tcp_Server::new_connection(boost::asio::ip::tcp::socket s)
 {
-    switch(server_role) {
+    switch(server_role)
+    {
         case Role_t::Passive:
             make_shared<net::Tcp_Passive_Session>(std::move(s))->start();
             break;
