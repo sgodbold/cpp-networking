@@ -30,9 +30,14 @@ Tcp::Tcp(const std::string& host, const std::string& service)
 // Closes the connection if it is still open
 Tcp::~Tcp()
 {
-    if(connection_status == Status_t::Open) {
+    if(is_open()) {
         close();
     }
+}
+
+bool Tcp::is_open()
+{
+    return connection_status == Status_t::Open and socket.is_open();
 }
 
 // Stops I/O service operations, closes out the socket, sets state to Closed.
@@ -56,6 +61,7 @@ Tcp::Send_Return_t Tcp::send(const_buffer& req, error_code& ec)
     std::size_t size = boost::asio::buffer_size(req);
     async_write(socket, buffer(req, size), [prom](const error_code& ec, std::size_t len)
         {
+            // XXX check ec. connection may be closed.
             prom->set_value(len);
         }
     );
@@ -68,6 +74,7 @@ Tcp::Send_Return_t Tcp::send(vector<const_buffer>& req, error_code& ec)
     shared_ptr<promise<size_t>> prom = make_shared<promise<size_t>>();
     future<size_t> fut = prom->get_future();
 
+    // XXX check ec. connection may be closed.
     async_write(socket, req, [prom](const error_code& ec, size_t len)
         { prom->set_value(len); }
     );
@@ -100,7 +107,7 @@ Tcp::Receive_Return_t Tcp::receive(error_code&)
 
     async_read(socket, *response, [prom, response](const error_code& ec, size_t len)
         {
-            // XXX check errors
+            // XXX check ec. connection may be closed.
             prom->set_value(response);
         }
     );
@@ -118,7 +125,7 @@ Tcp::Receive_Return_t Tcp::receive(size_t size, error_code& ec)
 
     async_read(socket, *response, [prom, response](const error_code& ec, size_t len)
         {
-            // XXX check errors
+            // XXX check ec. connection may be closed.
             prom->set_value(response);
         }
     );
@@ -135,7 +142,7 @@ Tcp::Receive_Return_t Tcp::receive(std::string pattern, error_code& ec)
 
     async_read_until(socket, *response, pattern, [prom, response](const error_code& ec, size_t len)
         {
-            // XXX check errors
+            // XXX check ec. connection may be closed.
             prom->set_value(response);
         }
     );
