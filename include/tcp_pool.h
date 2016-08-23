@@ -10,7 +10,7 @@
 #include <queue>
 #include <string>
 
-#include "boost_definitions.h"
+#include "boost_config.h"
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
 

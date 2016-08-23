@@ -1,7 +1,7 @@
 CC := g++
 SRCEXT := cpp
 BUILDDIR := build
-TARGET := bin/dropbox-mnt
+TARGET := bin/cpp-networking
 
 # Program files
 PROGRAM_DIR := src
@@ -14,9 +14,9 @@ TEST_SOURCE := $(shell find $(TEST_DIR) -type f -name *.$(SRCEXT))
 TEST_OBJECTS := $(patsubst $(TEST_DIR)/%, $(BUILDDIR)/test/%, $(TEST_SOURCE:.$(SRCEXT)=.o))
 
 # Compiler flags
-CFLAGS := -g -std=c++14 -pedantic-errors -Wall
-LIBS := -lboost_system -lboost_thread -lpthread -lboost_unit_test_framework # -lcrypto -lssl
+CFLAGS := -g -std=c++14 -pedantic-errors -Wall -shared
 INC := -Iinclude
+LIBS := -lboost_system -lboost_thread -lpthread -lboost_unit_test_framework -lboost_log_setup -lboost_log -lboost_date_time -lboost_filesystem # -lcrypto -lssl
 
 # Top executable linking
 $(TARGET): $(PROGRAM_OBJECTS)

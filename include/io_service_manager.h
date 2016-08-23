@@ -5,7 +5,7 @@
 #include <memory>
 #include <mutex>
 
-#include "boost_definitions.h"
+#include "boost_config.h"
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
 

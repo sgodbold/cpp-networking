@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include "boost_config.h"
+
 using boost::asio::deadline_timer;
 using boost::posix_time::time_duration;
 using boost::system::error_code;

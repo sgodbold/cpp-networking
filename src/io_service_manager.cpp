@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <memory>
 
-#include "boost_definitions.h"
+#include "boost_config.h"
 #include <boost/asio.hpp>
 #include <boost/thread/future.hpp>
 

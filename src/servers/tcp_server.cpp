@@ -32,6 +32,7 @@ Tcp_Server::~Tcp_Server()
 {
     io_service.stop();
 
+    // Stop accepting new connections
     accept_thread->join();
 
     // Release socket

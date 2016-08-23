@@ -1,6 +1,10 @@
 /* All */
 Add boost logging to replace couts
 Go over Google style guide
+Add statistics (running threads, io_services, cached connections, etc..)
+
+/* Building */
+Try out cmake
 
 /* Tcp */
 Investigate asynchronous connect / disconnect

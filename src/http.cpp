@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include "boost_definitions.h"
+#include "boost_config.h"
 #include <boost/asio.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/thread/future.hpp>
