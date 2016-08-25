@@ -3,7 +3,7 @@
 #include "tcp.h"
 #include "servers/tcp_server.h"
 
-#include "boost_definitions.h"
+#include "boost_config.h"
 #include <boost/asio.hpp>
 #include <boost/test/unit_test.hpp>
 #include <boost/thread/future.hpp>

@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 
+#include "boost_config.h"
 #include <boost/asio.hpp>
 
 using boost::asio::buffer;

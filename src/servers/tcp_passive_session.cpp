@@ -1,6 +1,7 @@
 #include "servers/tcp_passive_session.h"
 #include "servers/tcp_base_session.h"
 
+#include "boost_config.h"
 #include <boost/asio.hpp>
 
 #include <iostream>

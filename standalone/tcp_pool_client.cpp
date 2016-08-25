@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 
+#include "boost_config.h"
 #include <boost/asio.hpp>
 
 using boost::asio::buffer;

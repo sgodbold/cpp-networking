@@ -7,6 +7,7 @@
 #include <iostream>
 #include <string>
 
+#include "boost_config.h"
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
 

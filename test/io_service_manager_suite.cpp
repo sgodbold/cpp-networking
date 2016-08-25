@@ -2,10 +2,12 @@
 
 #include "io_service_manager.h"
 
-#include "boost_definitions.h"
+#include "boost_config.h"
 #include <boost/asio.hpp>
 #include <boost/test/unit_test.hpp>
 #include <boost/thread/future.hpp>
+
+// XXX Race condition present
 
 using boost::future;
 using boost::promise;

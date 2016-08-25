@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-#include "boost_definitions.h"
+#include "boost_config.h"
 #include <boost/asio.hpp>
 
 namespace net {

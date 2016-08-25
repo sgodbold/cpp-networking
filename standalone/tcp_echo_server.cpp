@@ -2,6 +2,7 @@
 
 #include <iostream>
 
+#include "boost_config.h"
 #include <boost/asio.hpp>
 
 using std::cout; using std::cerr; using std::endl;

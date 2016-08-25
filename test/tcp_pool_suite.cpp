@@ -5,7 +5,7 @@
 
 #include <memory>
 
-#include "boost_definitions.h"
+#include "boost_config.h"
 #include <boost/test/unit_test.hpp>
 
 using boost::posix_time::milliseconds;

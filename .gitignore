@@ -2,6 +2,7 @@
 build/*
 bin/*
 *.swp
+*.log
 
 # Compiled Object files
 *.slo
