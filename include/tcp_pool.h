@@ -63,6 +63,7 @@ class Tcp_Pool : public std::enable_shared_from_this<Tcp_Pool>
 
         void put_connection(std::unique_ptr<net::Tcp> tcp_client);
 
+        void handle_remove_connection(const boost::system::error_code&);
         void remove_connection();
 
         // Queue of cached connections. The top connection is the oldest. The bottom

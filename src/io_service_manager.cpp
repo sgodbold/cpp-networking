@@ -95,6 +95,8 @@ void Io_Service_Manager::to_start_state()
 // where it can be started again.
 void Io_Service_Manager::to_stop_state()
 {
+    Logger::get()->trace("Io_Service_Manager::to_stop_state()");
+
     if (!is_running())
     {
         logic_error e("Io_Service_Manager is already stopped");
@@ -116,6 +118,10 @@ void Io_Service_Manager::to_stop_state()
     {
         io_thread_worker->join();
         io_thread_worker.reset();
+    }
+    else
+    {
+        Logger::get()->warn("Io_Service_Manager::to_stop_state() io_thread_worker not joined");
     }
 
     // Prepare service to startup again.

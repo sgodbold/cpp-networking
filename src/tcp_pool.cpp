@@ -4,6 +4,7 @@
 #include <string>
 
 #include "boost_config.h"
+#include <boost/bind.hpp>
 
 using boost::asio::deadline_timer;
 using boost::posix_time::time_duration;
@@ -23,8 +24,6 @@ using std::string;
 using std::unique_ptr;
 using std::weak_ptr;
 
-/* Tcp_Pool Public */
-
 shared_ptr<Tcp_Pool> Tcp_Pool::create(const string& host,
                                       const string& service,
                                       time_duration duration)
@@ -38,6 +37,7 @@ Tcp_Pool::~Tcp_Pool()
 
 // Either create a new connection to return or grab a connection from the pool,
 // stop its timer, and return.
+//
 // XXX should there be a 'max connections' where once reached get() will block
 // until a connection is put back in the pool?
 Tcp_Pool::Tcp_Guard Tcp_Pool::get()
@@ -72,9 +72,6 @@ Tcp_Pool::Tcp_Guard Tcp_Pool::get()
     return tcp_guard;
 }
 
-
-/* Tcp_Pool Private */
-
 Tcp_Pool::Tcp_Pool(const string& host_, const string& service_, time_duration duration_)
   : host(host_),
     service(service_),
@@ -86,20 +83,36 @@ Tcp_Pool::Tcp_Pool(const string& host_, const string& service_, time_duration du
 void Tcp_Pool::put_connection(std::unique_ptr<Tcp> tcp_client)
 {
     lock_guard<mutex> lck(connections_lock);
+    Logger::get()->trace("Tcp_Pool::put_connection()");
 
     // Create and start the deadline timer.
     auto deadline = make_shared<deadline_timer>(io_service_manager.get());
     deadline->expires_from_now(timeout);
-    deadline->async_wait(bind(&Tcp_Pool::remove_connection, this));
-    Timed_Tcp_Connection_t ttc { move(tcp_client), deadline };
+    deadline->async_wait(boost::bind(&Tcp_Pool::handle_remove_connection, this, boost::asio::placeholders::error));
+    Timed_Tcp_Connection_t ttc { move(tcp_client), std::move(deadline) };
 
     // Add timed connection back to queue.
     connections.push(std::move(ttc));
 }
 
+void Tcp_Pool::handle_remove_connection(const error_code& ec)
+{
+    // If there's an error immediately return because deadline.cancel() was called somewhere.
+    if (ec)
+    {
+        Logger::get()->debug("Tcp_Pool::handle_remove_connection {}", ec.message());
+        return;
+    }
+    else
+    {
+        remove_connection();
+    }
+}
+
 void Tcp_Pool::remove_connection()
 {
     lock_guard<mutex> lck(connections_lock);
+    Logger::get()->trace("Tcp_Pool::remove_connection()");
 
     // Check timer of top connection to see if it's expired
     auto ttc_ref = &connections.front();
@@ -127,15 +140,20 @@ Tcp_Pool::Tcp_Guard::~Tcp_Guard()
     auto sp = tcp_client_owner.lock();
     if (sp and tcp_client->status() == Tcp::Status_t::Open)
     {
-        Logger::get()->trace("Tcp_Pool: putting connection back in the pool");
+        Logger::get()->debug("Tcp_Pool: putting connection back in the pool");
         sp->put_connection(move(tcp_client));
+        return;
     }
-    else if(!sp)
+
+    // Not putting connection back, so just close it.
+    tcp_client.reset();
+
+    if(!sp)
     {
-        Logger::get()->trace("Tcp_Guard: owner pool is destroyed; closing connection");
+        Logger::get()->debug("Tcp_Guard: owner pool is destroyed; closing connection");
     }
     else
     {
-        Logger::get()->trace("Tcp_Guard: connection is closed; leaving out of pool");
+        Logger::get()->debug("Tcp_Guard: connection is closed; leaving out of pool");
     }
 }

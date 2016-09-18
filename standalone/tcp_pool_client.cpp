@@ -12,6 +12,7 @@ using boost::asio::buffer;
 using boost::asio::const_buffer;
 using boost::asio::streambuf;
 using boost::posix_time::milliseconds;
+using boost::posix_time::seconds;
 
 using std::cout; using std::cin; using std::cerr; using std::endl;
 using std::shared_ptr;
@@ -30,7 +31,7 @@ int main(int argc, char* argv[]) {
         string input;
         boost::system::error_code ec;
 
-        auto pool = Tcp_Pool::create("localhost", port, milliseconds(10));
+        auto pool = Tcp_Pool::create("localhost", port, seconds(10));
 
         while(true) {
             Tcp_Pool::Tcp_Guard client = pool->get();
@@ -52,6 +53,9 @@ int main(int argc, char* argv[]) {
             cout << "Received " << res_buf->size() << " bytes" << endl;
             std::ostringstream ss;
             ss << res_buf;
+
+            // Close the connection
+            // client->close();
 
             cout << "Recv: " << ss.str();
         }

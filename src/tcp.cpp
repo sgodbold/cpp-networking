@@ -39,6 +39,7 @@ Tcp::Tcp(const std::string& host, const std::string& service)
 // Closes the connection if it is still open
 Tcp::~Tcp()
 {
+    Logger::get()->trace("Tcp: destroying client");
     if (is_open())
     {
         close();
