@@ -1,6 +1,7 @@
 /* All */
 Go over Google style guide
 Add statistics (running threads, io_services, cached connections, etc..)
+Investigate async callback lifetimes http://stackoverflow.com/questions/11356742/boost-async-functions-and-shared-ptrs/19622084#19622084
 
 /* Building */
 Try out cmake
@@ -13,9 +14,8 @@ Allow filtering out logs from specific classes
 /* Tcp */
 Investigate asynchronous connect / disconnect
 Test recieve functions [dependent on better Tcp_Server sending functions]
-Handle error codes
+Handle error codes [server disconnections]
 Investigate switching to a state pattern
-Handle server disconnections
 
 /* Io_Service_Manager */
 Implement default behavior
@@ -24,4 +24,4 @@ Implement worker thread pools
 /* Tcp_Server(s) */
 Auto select an open port
 Implement 2 read methods (by size and by pattern)
-Disconnect connected clients on destruction
+Disconnect connected clients on destruction?

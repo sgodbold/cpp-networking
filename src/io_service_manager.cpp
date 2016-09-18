@@ -77,7 +77,7 @@ void Io_Service_Manager::to_start_state()
     if (is_running())
     {
         logic_error e("Io_Service_Manager is already running");
-        Logger::get()->debug(e.what());
+        Logger::get()->warn(e.what());
         throw e;
     }
 
@@ -102,6 +102,7 @@ void Io_Service_Manager::to_stop_state()
         throw e;
     }
 
+    // Destroy the io_work so that a perpetual io_service knows to stop.
     if (is_perpetual())
     {
         io_work.reset();
@@ -110,6 +111,7 @@ void Io_Service_Manager::to_stop_state()
     // Stop service and all worker threads.
     io_service.stop();
 
+    // Stop and join worker threads.
     if (io_thread_worker and io_thread_worker->joinable())
     {
         io_thread_worker->join();

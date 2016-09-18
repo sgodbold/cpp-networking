@@ -27,18 +27,25 @@ public:
     };
 
     Tcp_Server(Role_t, short port);
+
     ~Tcp_Server();
+
+    void stop();
 
 private:
     void do_accept();
 
     void new_connection(boost::asio::ip::tcp::socket);
 
+    // Server properties
     const Role_t server_role;
+    bool running;
 
+    // Async objects
     Io_Service_Manager io_service;
     std::shared_ptr<boost::thread> accept_thread;
 
+    // Networking objects
     boost::asio::ip::tcp::acceptor acceptor;
     boost::asio::ip::tcp::socket socket;
 

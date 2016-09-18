@@ -24,13 +24,24 @@ using std::shared_ptr;
 using std::string;
 
 Tcp_Server::Tcp_Server(Role_t role, short port)
-    : server_role(role), io_service(Io_Service_Manager::Behavior_t::Perpetual),
-      acceptor(io_service.get(), tcp::endpoint(tcp::v4(), port)), socket(io_service.get())
+  : server_role(role),
+    running(true),
+    io_service(Io_Service_Manager::Behavior_t::Perpetual),
+    acceptor(io_service.get(), tcp::endpoint(tcp::v4(), port)),
+    socket(io_service.get())
 {
     accept_thread = make_shared<boost::thread>(&Tcp_Server::do_accept, this);
 }
 
 Tcp_Server::~Tcp_Server()
+{
+    if (running)
+    {
+        stop();
+    }
+}
+
+void Tcp_Server::stop()
 {
     io_service.stop();
 
@@ -42,6 +53,8 @@ Tcp_Server::~Tcp_Server()
     socket.shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
     socket.shutdown(boost::asio::ip::tcp::socket::shutdown_receive, ec);
     socket.close();
+
+    running = false;
 
     Logger::get()->debug("Tcp_Server: stopping");
 }

@@ -55,10 +55,17 @@ void Tcp::close()
 {
     io_service.stop();
 
-    // Shutdown before closing for portable graceful closures.
-    socket.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
-    socket.shutdown(boost::asio::ip::tcp::socket::shutdown_receive);
-    socket.close();
+    try
+    {
+        // Shutdown before closing for portable graceful closures.
+        socket.shutdown(boost::asio::ip::tcp::socket::shutdown_send);
+        socket.shutdown(boost::asio::ip::tcp::socket::shutdown_receive);
+        socket.close();
+    }
+    catch(boost::system::system_error e)
+    {
+        Logger::get()->debug("Tcp::close() {} ", e.what());
+    }
 
     connection_status = Status_t::Closed;
 }
