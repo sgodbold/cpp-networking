@@ -5,7 +5,6 @@
 #include "tcp.h"
 
 #include <chrono>
-#include <iostream>
 #include <memory>
 #include <queue>
 #include <string>

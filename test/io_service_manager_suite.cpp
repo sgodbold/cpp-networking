@@ -7,8 +7,6 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/thread/future.hpp>
 
-// XXX Race condition present
-
 using boost::future;
 using boost::promise;
 
@@ -90,6 +88,7 @@ BOOST_AUTO_TEST_SUITE( io_service_manager_suite )
 
             BOOST_FIXTURE_TEST_CASE( check_io_service_is_still_running, With_Queued_Work)
             {
+                fut.get(); // XXX Race condition if this line isn't present
                 BOOST_TEST( service.is_running() );
             }
 

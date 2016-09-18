@@ -2,7 +2,7 @@
 #define CPP_NETWORKING_TCP_H
 
 #include "io_service_manager.h"
-#include "logs/logger.h"
+#include "logger.h"
 
 #include <string>
 #include <vector>
@@ -14,7 +14,7 @@
 
 namespace net {
 
-class Tcp // : public Logger
+class Tcp
 {
     public:
         using Send_Return_t = boost::future<size_t>;

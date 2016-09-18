@@ -1,5 +1,7 @@
 #include "io_service_manager.h"
 
+#include "logger.h"
+
 #include <algorithm>
 #include <memory>
 
@@ -22,7 +24,9 @@ using std::unique_lock;
 Io_Service_Manager::Io_Service_Manager() : Io_Service_Manager(Behavior_t::Default) {}
 
 Io_Service_Manager::Io_Service_Manager(Behavior_t b)
-    : behavior(b), state(State_t::Stopped), io_thread_worker()
+    : behavior(b),
+      state(State_t::Stopped),
+      io_thread_worker()
 {
     // Top level state change function. Everything must be atomic.
     lock_guard<mutex> lck(state_change_lock);
@@ -72,7 +76,9 @@ void Io_Service_Manager::to_start_state()
 {
     if (is_running())
     {
-        throw logic_error("Io_Service_Manager is already running");
+        logic_error e("Io_Service_Manager is already running");
+        Logger::get()->debug(e.what());
+        throw e;
     }
 
     if (is_perpetual())
@@ -91,7 +97,9 @@ void Io_Service_Manager::to_stop_state()
 {
     if (!is_running())
     {
-        throw logic_error("Io_Service_Manager is already stopped");
+        logic_error e("Io_Service_Manager is already stopped");
+        Logger::get()->debug(e.what());
+        throw e;
     }
 
     if (is_perpetual())
@@ -122,8 +130,8 @@ void Io_Service_Manager::run_worker()
     //     2. io_service is stopped
     Io_Service_Manager::io_service.run();
 
+    // XXX not clean
     std::string state_str;
-
     switch (state)
     {
         case State_t::Destructing:
@@ -137,7 +145,7 @@ void Io_Service_Manager::run_worker()
             break;
     }
 
-    std::cout << "worker exiting at state: " << state_str << std::endl;
+    Logger::get()->trace("Io_Service_Manager: worker exiting at state: {}", state_str);
 }
 
 void Io_Service_Manager::block_until_stopped()

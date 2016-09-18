@@ -1,10 +1,11 @@
 #include "servers/tcp_server.h"
 
+#include "logger.h"
+
 #include "io_service_manager.h"
 #include "servers/tcp_echo_session.h"
 #include "servers/tcp_passive_session.h"
 
-#include <iostream>
 #include <string>
 
 #include "boost_config.h"
@@ -42,15 +43,15 @@ Tcp_Server::~Tcp_Server()
     socket.shutdown(boost::asio::ip::tcp::socket::shutdown_receive, ec);
     socket.close();
 
-    std::cout << "Server Stopped" << std::endl;
+    Logger::get()->debug("Tcp_Server: stopping");
 }
 
 void Tcp_Server::do_accept()
 {
-    std::cout << "Waiting for connection..." << std::endl;
+    Logger::get()->debug("Waiting for connection...");
     acceptor.async_accept(socket, [this](error_code ec)
         {
-            std::cout << "Accepted" << std::endl;
+            Logger::get()->debug("Connection accepted");
             if (!ec)
             {
                 new_connection(std::move(socket));
@@ -73,8 +74,8 @@ void Tcp_Server::new_connection(boost::asio::ip::tcp::socket s)
             make_shared<net::Tcp_Echo_Session>(std::move(s))->start();
             break;
         default:
-            std::cerr << "Invalid Tcp_Server role" << std::endl;
+            std::logic_error e("Tcp_Server: invalid server role selected");
+            Logger::get()->warn(e.what());
+            throw e;
     };
-
-    std:: cout << "Session Created" << std::endl;
 }

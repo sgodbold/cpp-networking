@@ -1,14 +1,6 @@
 #ifndef CPP_NETWORKING_IO_SERVICE_H
 #define CPP_NETWORKING_IO_SERVICE_H
 
-#include <condition_variable>
-#include <memory>
-#include <mutex>
-
-#include "boost_config.h"
-#include <boost/asio.hpp>
-#include <boost/thread.hpp>
-
 /* Io_Service_Manager
  *
  * Overview:
@@ -25,6 +17,14 @@
  * threads are involved in io work.
  *
  */
+
+#include <condition_variable>
+#include <memory>
+#include <mutex>
+
+#include "boost_config.h"
+#include <boost/asio.hpp>
+#include <boost/thread.hpp>
 
 namespace net
 {

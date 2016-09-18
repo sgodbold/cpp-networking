@@ -5,7 +5,7 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
-#include "logs/logger.h"
+#include "logger.h"
 
 #include "boost_config.h"
 #include <boost/log/core.hpp>

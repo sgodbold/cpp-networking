@@ -1,6 +1,7 @@
 #include "servers/tcp_base_session.h"
 
-#include <iostream>
+#include "logger.h"
+
 #include <memory>
 #include <vector>
 
@@ -38,11 +39,11 @@ void Tcp_Base_Session::do_read()
     // XXX replace with streambufs
     auto data_ptr = make_shared<std::vector<char>>(max_length_c);
 
-    std::cout << " | Waiting to read..." << std::endl;
+    Logger::get()->debug("Tcp_Base_Session: Waiting to read...");
     socket.async_read_some(boost::asio::buffer(*data_ptr, max_length_c),
         [this, self, data_ptr] (error_code ec, std::size_t length) {
             // XXX Check ec for client disconnection
-            std::cout << " | Read " << length << " bytes" << std::endl;
+            Logger::get()->debug(" | read {} bytes", length);
             this->do_read_work(data_ptr, ec);
         }
     );
@@ -55,7 +56,7 @@ void Tcp_Base_Session::do_write(shared_ptr<const_buffer> data)
     async_write(socket, buffer(*data, max_length_c),
         [this, self] (error_code ec, std::size_t length) {
             // XXX Check ec for client disconnection
-            std::cout << " | Wrote " << length << " bytes" << std::endl;
+            Logger::get()->debug(" | wrote {} bytes", length);
             this->do_write_work(ec, length);
         }
     );

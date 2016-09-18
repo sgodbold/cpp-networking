@@ -1,4 +1,5 @@
 #include "tcp.h"
+#include "logger.h"
 
 #include <memory>
 #include <string>
@@ -29,7 +30,8 @@ using std::vector;
 // Starts connection with the server host
 Tcp::Tcp(const std::string& host, const std::string& service)
     : connection_status(Status_t::Connecting),
-      io_service(Io_Service_Manager::Behavior_t::Perpetual), socket(io_service.get())
+      io_service(Io_Service_Manager::Behavior_t::Perpetual),
+      socket(io_service.get())
 {
     connect(host, service);
 }
@@ -178,6 +180,8 @@ void Tcp::connect(const string& host, const string& service)
 
     if (error)
     {
+        Logger::get()->info("TCP connection failed: {}", error.message());
+
         connection_status = Status_t::Bad;
         throw system_error(error);
     }

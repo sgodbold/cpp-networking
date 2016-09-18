@@ -1,4 +1,5 @@
 #include "tcp_pool.h"
+#include "logger.h"
 
 #include <string>
 
@@ -48,13 +49,14 @@ Tcp_Pool::Tcp_Guard Tcp_Pool::get()
     // If there are no connections in the pool create a new one.
     if (connections.empty())
     {
-        std::cout << "creating new connection for the pool" << std::endl;
+        Logger::get()->debug("Tcp_Pool: creating new connection for the pool");
         client = make_unique<Tcp>(host, service);
     }
     // Else grab a connection from the pool.
     else
     {
-        std::cout << "using existing connection" << std::endl;
+        Logger::get()->debug("Tcp_Pool: using cached connection");
+
         // Grab the top connection.
         Timed_Tcp_Connection_t ttc = std::move(connections.front());
         connections.pop();
@@ -62,7 +64,7 @@ Tcp_Pool::Tcp_Guard Tcp_Pool::get()
         // Stop its deadline timer.
         ttc.second->cancel();
 
-        client = std::move(ttc.first);
+        client = move(ttc.first);
     }
 
     weak_ptr<Tcp_Pool> wp(shared_from_this());
@@ -74,7 +76,9 @@ Tcp_Pool::Tcp_Guard Tcp_Pool::get()
 /* Tcp_Pool Private */
 
 Tcp_Pool::Tcp_Pool(const string& host_, const string& service_, time_duration duration_)
-    : host(host_), service(service_), timeout(duration_),
+  : host(host_),
+    service(service_),
+    timeout(duration_),
     io_service_manager(Io_Service_Manager::Behavior_t::Perpetual)
 {
 }
@@ -104,24 +108,34 @@ void Tcp_Pool::remove_connection()
         // Remove connection from queue. This closes and destroys the connection.
         connections.pop();
     }
-    // XXX else
-    //      log an error but leave alone?
+    else
+    {
+        Logger::get()->warn("Tcp_Pool: remove_connection() triggered but no connection is expired");
+    }
 }
 
 Tcp_Pool::Tcp_Guard::Tcp_Guard(std::unique_ptr<Tcp>&& tcp_client_,
                                std::weak_ptr<Tcp_Pool>tcp_client_owner_)
-    : tcp_client(move(tcp_client_)), tcp_client_owner(tcp_client_owner_)
+  : tcp_client(move(tcp_client_)),
+    tcp_client_owner(tcp_client_owner_)
 {}
 
 // If the connection pool still exists and the connection is still open,
 // it will be put back. Otherwise it will be disconnected during destruction.
 Tcp_Pool::Tcp_Guard::~Tcp_Guard()
 {
-    std::cout << "destructing guard" << std::endl;
     auto sp = tcp_client_owner.lock();
     if (sp and tcp_client->status() == Tcp::Status_t::Open)
     {
-        std::cout << "putting connection back" << std::endl;
+        Logger::get()->trace("Tcp_Pool: putting connection back in the pool");
         sp->put_connection(move(tcp_client));
+    }
+    else if(!sp)
+    {
+        Logger::get()->trace("Tcp_Guard: owner pool is destroyed; closing connection");
+    }
+    else
+    {
+        Logger::get()->trace("Tcp_Guard: connection is closed; leaving out of pool");
     }
 }

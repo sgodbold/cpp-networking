@@ -4,7 +4,6 @@
 #include "io_service_manager.h"
 #include "servers/tcp_base_session.h"
 
-#include <iostream>
 #include <memory>
 #include <string>
 

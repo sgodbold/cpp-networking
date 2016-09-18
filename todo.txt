@@ -1,10 +1,14 @@
 /* All */
-Add boost logging to replace couts
 Go over Google style guide
 Add statistics (running threads, io_services, cached connections, etc..)
 
 /* Building */
 Try out cmake
+
+/* Logging */
+Add logging files
+Add program args to set logging level
+Allow filtering out logs from specific classes
 
 /* Tcp */
 Investigate asynchronous connect / disconnect

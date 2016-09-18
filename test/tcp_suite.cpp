@@ -19,8 +19,8 @@ using net::Tcp_Server;
 
 using std::string;
 
-static const int port_int = 9023;
-static const char* port_str = "9023";
+static const int port_int = 9043;
+static const char* port_str = "9043";
 
 struct A_Running_Tcp_Echo_Server
 {
@@ -61,6 +61,7 @@ BOOST_AUTO_TEST_SUITE( tcp_suite )
     }
 
 // XXX re-enable once tcp destructor works when the server is already closed
+/*
     BOOST_FIXTURE_TEST_SUITE( client_sending_messages, A_Connected_Tcp_Client,
                               * boost::unit_test::disabled() )
 
@@ -117,6 +118,7 @@ BOOST_AUTO_TEST_SUITE( tcp_suite )
         }
 
     BOOST_AUTO_TEST_SUITE_END() // client_sending_messages
+*/
 
     BOOST_AUTO_TEST_SUITE( client_receiving_messages )
         // TODO: refactor tcp servers first
