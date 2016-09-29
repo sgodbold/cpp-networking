@@ -4,9 +4,6 @@
 
 #include "io_service_manager.h"
 #include "servers/tcp_echo_session.h"
-#include "servers/tcp_passive_session.h"
-
-#include <string>
 
 #include "boost_config.h"
 #include <boost/asio.hpp>
@@ -16,12 +13,10 @@ using net::Io_Service_Manager;
 using net::Tcp_Server;
 
 using boost::asio::ip::tcp;
-using boost::asio::io_service;
 using boost::system::error_code;
 
 using std::make_shared;
 using std::shared_ptr;
-using std::string;
 
 Tcp_Server::Tcp_Server(Role_t role, short port)
   : server_role(role),
@@ -80,9 +75,6 @@ void Tcp_Server::new_connection(boost::asio::ip::tcp::socket s)
 {
     switch(server_role)
     {
-        case Role_t::Passive:
-            make_shared<net::Tcp_Passive_Session>(std::move(s))->start();
-            break;
         case Role_t::Echo:
             make_shared<net::Tcp_Echo_Session>(std::move(s))->start();
             break;

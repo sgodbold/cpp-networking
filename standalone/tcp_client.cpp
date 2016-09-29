@@ -1,3 +1,4 @@
+#include "logger.h"
 #include "tcp.h"
 
 #include <iostream>
@@ -14,6 +15,7 @@ using std::cout; using std::cin; using std::cerr; using std::endl;
 using std::shared_ptr;
 using std::string;
 
+using net::Logger;
 using net::Tcp;
 
 int main(int argc, char* argv[]) {
@@ -39,12 +41,13 @@ int main(int argc, char* argv[]) {
             // Send / receive the message
             const_buffer send_buf(buffer(input));
             auto send_fut = client.send(send_buf, ec);
-            cout << "Sent " << send_fut.get() << " bytes" << endl;
+            size_t sent_size = send_fut.get();
+            Logger::get()->info("Sent {} bytes", sent_size);
             auto res_fut = client.receive("\n", ec);
 
             // Convert response buffer to string
             shared_ptr<streambuf> res_buf = res_fut.get();
-            cout << "Received " << res_buf->size() << " bytes" << endl;
+            Logger::get()->info("Received {} bytes", res_buf->size());
             std::ostringstream ss;
             ss << res_buf;
 

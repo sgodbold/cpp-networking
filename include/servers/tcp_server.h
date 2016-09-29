@@ -18,23 +18,22 @@ class Tcp_Server
 public:
     enum class Role_t
     {
-        // A simple server accepts any incoming connection but does nothing
-        // after that. Useful for testing
-        Passive,
-
-        // Reads incoming messages one line at a time and echos them back.
+        // A server which receives until a newline character '\n' and then immediately writes
+        // it back to the client
         Echo,
     };
 
     Tcp_Server(Role_t, short port);
-
     ~Tcp_Server();
 
+    // Stop the server. No more new connections are accepted. XXX do running sessions still continue?
     void stop();
 
 private:
+    // Async accept loop that creates a new session for every connected client.
     void do_accept();
 
+    // Creates and starts a new connection session of type server_role.
     void new_connection(boost::asio::ip::tcp::socket);
 
     // Server properties

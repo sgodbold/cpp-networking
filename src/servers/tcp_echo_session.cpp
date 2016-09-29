@@ -10,6 +10,7 @@
 #include <vector>
 
 using boost::asio::const_buffer;
+using boost::asio::streambuf;
 using boost::system::error_code;
 
 using net::Tcp_Echo_Session;
@@ -17,19 +18,25 @@ using net::Tcp_Echo_Session;
 using std::make_shared;
 using std::shared_ptr;
 
+const char* const pattern = "\n";
+
 Tcp_Echo_Session::Tcp_Echo_Session(boost::asio::ip::tcp::socket socket)
     : net::Tcp_Base_Session(std::move(socket))
 {
     Logger::get()->debug(" | echo session started");
 }
 
-void Tcp_Echo_Session::do_read_work(shared_ptr<std::vector<char>> data_ptr, error_code ec)
+void Tcp_Echo_Session::start()
+{
+  do_read(pattern);
+}
+
+void Tcp_Echo_Session::do_read_work(shared_ptr<streambuf> res, error_code ec)
 {
     Logger::get()->debug(" | working on read data");
     if (!ec)
     {
-        auto buf = make_shared<const_buffer>(boost::asio::buffer(*data_ptr, max_length_c));
-        do_write(buf);
+        do_write(res);
     }
 }
 
@@ -38,6 +45,6 @@ void Tcp_Echo_Session::do_write_work(error_code ec, size_t length)
     Logger::get()->debug(" | working on write data");
     if (!ec)
     {
-        do_read();
+        do_read(pattern);
     }
 }
