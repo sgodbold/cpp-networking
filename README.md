@@ -22,6 +22,6 @@ On the face I want a very simple interface for complex concurrent / asynchoronou
 * RAII connections and disconnections
 * Self managed asynchronous I/O event loop (currently running on a single thread)
 * Easily customizable HTTP headers
+* HTTP v1.1 style of cached and persistent connections
 * TODO: Self managed I/O event loop workers that scale depending on load
 * TODO: Seperate server / client classes built off of the same base code
-* TODO: HTTP v1.1 style of cached and persistent connections
