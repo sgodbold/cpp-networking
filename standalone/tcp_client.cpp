@@ -26,10 +26,10 @@ int main(int argc, char* argv[]) {
         }
 
         std::string port = std::to_string(std::atoi(argv[1]));
+        Tcp client("localhost", port);
+
         string input;
         boost::system::error_code ec;
-
-        Tcp client("localhost", port);
 
         while(true) {
             // Get message to send
@@ -39,8 +39,7 @@ int main(int argc, char* argv[]) {
             input += "\r\n";
 
             // Send / receive the message
-            const_buffer send_buf(buffer(input));
-            auto send_fut = client.send(send_buf, ec);
+            auto send_fut = client.send(input, ec);
             size_t sent_size = send_fut.get();
             Logger::get()->info("Sent {} bytes", sent_size);
             auto res_fut = client.receive("\n", ec);

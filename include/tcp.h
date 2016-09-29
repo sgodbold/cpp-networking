@@ -48,7 +48,7 @@ class Tcp
          * Make sure that the data being sent will continue to exist as long as
          * the operation continues.
          *
-         * TODO: set error codes
+         * TODO: test error codes
          */
         Send_Return_t send(boost::asio::const_buffer&, boost::system::error_code&);
         Send_Return_t send(std::vector<boost::asio::const_buffer>&, boost::system::error_code&);
@@ -64,7 +64,6 @@ class Tcp
          * 2. Recieve a length of data
          * 3. Recieve until a pattern
          *
-         * TODO: set error codes
          */
         Receive_Return_t receive(boost::system::error_code&);
         Receive_Return_t receive(size_t size, boost::system::error_code&);
@@ -72,7 +71,6 @@ class Tcp
 
     private:
         // XXX blocking
-        // XXX temp change!
         void connect(const std::string& host, const std::string& service);
 
         bool is_disconnect_error(const boost::system::error_code& ec);
@@ -85,6 +83,7 @@ class Tcp
         boost::asio::ip::tcp::socket socket;
 
 }; // Tcp
+
 } // net
 
 #endif
