@@ -31,9 +31,10 @@ int main(int argc, char* argv[]) {
         string input;
         boost::system::error_code ec;
 
-        auto pool = Tcp_Pool::create("localhost", port, seconds(10));
+        auto pool = Tcp_Pool::create("localhost", port, milliseconds(10));
 
         while(true) {
+            boost::this_thread::sleep(boost::posix_time::milliseconds(100));
             Tcp_Pool::Tcp_Guard client = pool->get();
 
             // Get message to send
@@ -53,9 +54,6 @@ int main(int argc, char* argv[]) {
             cout << "Received " << res_buf->size() << " bytes" << endl;
             std::ostringstream ss;
             ss << res_buf;
-
-            // Close the connection
-            // client->close();
 
             cout << "Recv: " << ss.str();
         }

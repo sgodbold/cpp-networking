@@ -142,9 +142,6 @@ void Io_Service_Manager::run_worker()
     std::string state_str;
     switch (state)
     {
-        case State_t::Destructing:
-            state_str = "destructing";
-            break;
         case State_t::Running:
             state_str = "running";
             break;
@@ -156,6 +153,7 @@ void Io_Service_Manager::run_worker()
     Logger::get()->trace("Io_Service_Manager: worker exiting at state: {}", state_str);
 }
 
+// XXX unused; untested
 void Io_Service_Manager::block_until_stopped()
 {
     unique_lock<mutex> lck(state_change_lock);
@@ -166,6 +164,7 @@ void Io_Service_Manager::block_until_stopped()
     }
 }
 
+// XXX unused; untested
 void Io_Service_Manager::block_until_running()
 {
     unique_lock<mutex> lck(state_change_lock);

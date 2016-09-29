@@ -14,7 +14,8 @@
  *  ->warn();
  *  ->critical();
  *
- * To filter messages of a certain severity out of the logs just call Logger::set_level(severity level).
+ * To filter messages of a certain severity out of the logs
+ * just call Logger::set_level(severity level).
  *
  */
 

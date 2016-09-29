@@ -72,7 +72,12 @@ class Tcp
 
     private:
         // XXX blocking
+        // XXX temp change!
         void connect(const std::string& host, const std::string& service);
+
+        bool is_disconnect_error(const boost::system::error_code& ec);
+
+        void handle_disconnect();
 
         Status_t connection_status;
         Io_Service_Manager io_service;

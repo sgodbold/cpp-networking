@@ -34,6 +34,7 @@ void Tcp_Base_Session::do_read()
     // XXX i think this is needed to make sure this object lives as long as this function
     // needs to run. Bad things would happen if all other pointers are deleted while this
     // is running.
+    // XXX this also isn't the best solution. More research is needed
     auto self(shared_from_this());
 
     // XXX replace with streambufs

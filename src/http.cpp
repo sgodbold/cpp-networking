@@ -48,6 +48,7 @@ Http::Http(const string& host_)
 // XXX now that sends / receives are asynchronous all requests / responses must be atomically
 // paired up. 1 thread can't process multiple responses from the same socket. Maybe have a 
 // queue for 1 socket or connect a new socket for every request?
+//
 // NOTE: sockets are only file descriptors and cost a little ram. A new socket for each
 // request might not be a bad solution.
 future<Http_Response> Http::request(const std::string& method, const std::string& path,

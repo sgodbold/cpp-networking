@@ -18,6 +18,11 @@
  *
  */
 
+// XXX Should this interface be modified to protect access from any worker thread?
+//     It could be an accidental call in a lambda it's executing such as closing a TCP connection
+//     which by default stops the Io_Service_Manager. Every function could be protected with
+//     a thread id check. If this_thread_id in Io_Service_Manager::set<thread::id>; throw.
+
 #include <condition_variable>
 #include <memory>
 #include <mutex>
@@ -75,7 +80,6 @@ class Io_Service_Manager
     private:
         enum class State_t
         {
-            Destructing, // XXX not currently in use
             Running,
             Stopped,
         };

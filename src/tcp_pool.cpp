@@ -1,4 +1,5 @@
 #include "tcp_pool.h"
+
 #include "logger.h"
 
 #include <string>
@@ -13,7 +14,6 @@ using boost::system::error_code;
 using net::Tcp;
 using net::Tcp_Pool;
 
-using std::bind;
 using std::lock_guard;
 using std::make_shared;
 using std::make_unique;

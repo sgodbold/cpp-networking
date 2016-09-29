@@ -52,6 +52,8 @@ bool Tcp::is_open()
 }
 
 // Stops I/O service operations, closes out the socket, sets state to Closed.
+// XXX split this up into close() and disconnect()? maybe somehow distinguish from client and
+//     server disconnects
 void Tcp::close()
 {
     io_service.stop();
@@ -77,9 +79,27 @@ Tcp::Send_Return_t Tcp::send(const_buffer& req, error_code& ec)
     future<size_t> fut = prom->get_future();
 
     std::size_t size = boost::asio::buffer_size(req);
-    async_write(socket, buffer(req, size), [prom](const error_code& ec, std::size_t len)
+    async_write(socket, buffer(req, size), [this, prom](const error_code& ec, std::size_t len)
         {
-            // XXX check ec. connection may be closed.
+            /* XXX Error: this lambda is executed by a io_service worker. When the service worker
+                          calls handle_disconnect() this leads to a io_service_manager_stop()
+                          ((still being run by the worker)) which calls worker_thread->join()
+                          and that will seg fault.
+            // XXX Maybe just set state of TCP to closed and let a non-worker thread deal with it?
+            // XXX Signals? When there's many jobs in the io_service they should all be notified
+                   of this disconnect. Somehow the jobs which can no longer execute must be stopped.
+            */
+            if (ec)
+            {
+                if (is_disconnect_error(ec))
+                {
+                    handle_disconnect();
+                }
+                else // XXX add more cases for all error codes
+                {
+                    prom->set_exception(ec);
+                }
+            }
             prom->set_value(len);
         }
     );
@@ -93,8 +113,22 @@ Tcp::Send_Return_t Tcp::send(vector<const_buffer>& req, error_code& ec)
     future<size_t> fut = prom->get_future();
 
     // XXX check ec. connection may be closed.
-    async_write(socket, req, [prom](const error_code& ec, size_t len)
-        { prom->set_value(len); }
+    async_write(socket, req, [this, prom](const error_code& ec, size_t len)
+        {
+            if (ec)
+            {
+                if (is_disconnect_error(ec))
+                {
+                    handle_disconnect();
+                }
+                else // XXX add more cases for all error codes
+                {
+                    prom->set_exception(ec);
+                }
+            }
+
+            prom->set_value(len);
+        }
     );
 
     return fut;
@@ -123,9 +157,20 @@ Tcp::Receive_Return_t Tcp::receive(error_code&)
     auto fut = prom->get_future();
     auto response = make_shared<streambuf>();
 
-    async_read(socket, *response, [prom, response](const error_code& ec, size_t len)
+    async_read(socket, *response, [this, prom, response](const error_code& ec, size_t len)
         {
-            // XXX check ec. connection may be closed.
+            if (ec)
+            {
+                if (is_disconnect_error(ec))
+                {
+                    handle_disconnect();
+                }
+                else // XXX add more cases for all error codes
+                {
+                    prom->set_exception(ec);
+                }
+            }
+
             prom->set_value(response);
         }
     );
@@ -141,9 +186,21 @@ Tcp::Receive_Return_t Tcp::receive(size_t size, error_code& ec)
     auto fut = prom->get_future();
     auto response = make_shared<streambuf>(size);
 
-    async_read(socket, *response, [prom, response](const error_code& ec, size_t len)
+    async_read(socket, *response, [this, prom, response](const error_code& ec, size_t len)
         {
-            // XXX check ec. connection may be closed.
+            if (ec)
+            {
+                if (is_disconnect_error(ec))
+                {
+                    //XXX self join
+                  handle_disconnect();
+                }
+                else // XXX add more cases for all error codes
+                {
+                    prom->set_exception(ec);
+                }
+            }
+
             prom->set_value(response);
         }
     );
@@ -158,9 +215,20 @@ Tcp::Receive_Return_t Tcp::receive(std::string pattern, error_code& ec)
     auto fut = prom->get_future();
     auto response = make_shared<streambuf>();
 
-    async_read_until(socket, *response, pattern, [prom, response](const error_code& ec, size_t len)
+    async_read_until(socket, *response, pattern, [this, prom, response](const error_code& ec, size_t len)
         {
-            // XXX check ec. connection may be closed.
+            if (ec)
+            {
+                if (is_disconnect_error(ec))
+                {
+                    handle_disconnect();
+                }
+                else // XXX add more cases for all error codes
+                {
+                    prom->set_exception(ec);
+                }
+            }
+
             prom->set_value(response);
         }
     );
@@ -195,4 +263,14 @@ void Tcp::connect(const string& host, const string& service)
     }
 
     connection_status = Status_t::Open;
+}
+
+bool Tcp::is_disconnect_error(const error_code& ec)
+{
+    return (boost::asio::error::eof == ec) or (boost::asio::error::connection_reset == ec);
+}
+
+void Tcp::handle_disconnect()
+{
+    close();
 }

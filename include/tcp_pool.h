@@ -96,9 +96,6 @@ class Tcp_Pool::Tcp_Guard
         Tcp_Guard(const Tcp_Guard&) = delete;
         Tcp_Guard& operator=(const Tcp_Guard&) = delete;
 
-        // XXX is this an unsafe way to allow access for function calls on the client?
-        // would an interface be better? A benefit to this method is single point of
-        // maintenance on function signature changes.
         Tcp& operator*()
             { return *tcp_client; }
         Tcp* operator->()
