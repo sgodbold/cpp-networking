@@ -27,9 +27,6 @@ using std::string;
 static const int port_int = 9043;
 static const char* port_str = "9043";
 
-// Helpers
-bool streambuf_equals_string(shared_ptr<streambuf>, const string&);
-
 // Test Fixtures
 struct A_Running_Tcp_Echo_Server
 {
@@ -140,7 +137,7 @@ BOOST_AUTO_TEST_SUITE( tcp_suite )
 
             error_code read_ec;
             Tcp::Receive_Return_t recv_fut;
-            shared_ptr<streambuf> response;
+            shared_ptr<string> response;
 
             BOOST_AUTO_TEST_CASE( check_receive_until_error )
             {
@@ -154,7 +151,7 @@ BOOST_AUTO_TEST_SUITE( tcp_suite )
                 BOOST_TEST( !read_ec );
 
                 // Receive correct data
-                BOOST_TEST( streambuf_equals_string(response, send_string) );
+                BOOST_TEST( (*response == send_string) );
             }
 
             BOOST_AUTO_TEST_CASE( check_receive_size )
@@ -171,7 +168,10 @@ BOOST_AUTO_TEST_SUITE( tcp_suite )
                 BOOST_TEST( !read_ec );
 
                 // Receive correct data
-                BOOST_TEST( streambuf_equals_string(response, send_string.substr(0, receive_size)) );
+                BOOST_TEST( (*response == send_string.substr(0, receive_size)) );
+                // BOOST_TEST( (response->c_str() == "hello") );
+                std::cout << "res len = " << response->size() << std::endl;
+                std::cout << "substr = " << send_string.substr(0, receive_size) << std::endl;
             }
 
             BOOST_AUTO_TEST_CASE( check_receive_string_pattern )
@@ -190,17 +190,9 @@ BOOST_AUTO_TEST_SUITE( tcp_suite )
                 BOOST_TEST( !read_ec );
 
                 // Receive correct data
-                BOOST_TEST( streambuf_equals_string(response, send_string.substr(0, loc)) );
+                BOOST_TEST( (*response == send_string.substr(0, loc+1)) );
             }
 
     BOOST_AUTO_TEST_SUITE_END() // client_receiving_messages
 
 BOOST_AUTO_TEST_SUITE_END()
-
-bool streambuf_equals_string(shared_ptr<streambuf> buf, const string& str)
-{
-  ostringstream ss;
-  ss << buf;
-  std::cout << ss.str() << " ?= " << str << std::endl;
-  return ss.str() == str;
-}

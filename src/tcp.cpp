@@ -1,6 +1,8 @@
 #include "tcp.h"
 #include "logger.h"
 
+#include <functional>
+#include <istream>
 #include <memory>
 #include <string>
 #include <vector>
@@ -15,6 +17,7 @@ using boost::asio::async_write;
 using boost::asio::buffer;
 using boost::asio::const_buffer;
 using boost::asio::streambuf;
+using boost::asio::transfer_exactly;
 using boost::future;
 using boost::promise;
 using boost::system::error_code;
@@ -22,10 +25,17 @@ using boost::system::system_error;
 
 using net::Tcp;
 
+using std::bind;
+using std::istream;
 using std::shared_ptr;
 using std::make_shared;
+using std::move;
+using std::mutex;
 using std::string;
+using std::unique_lock;
 using std::vector;
+
+namespace ph = std::placeholders;
 
 // Starts connection with the server host
 Tcp::Tcp(const std::string& host, const std::string& service)
@@ -150,59 +160,26 @@ Tcp::Send_Return_t Tcp::send(const int number, error_code& ec)
 }
 
 // XXX untested
-// Receive until an error is received.
-Tcp::Receive_Return_t Tcp::receive(error_code&)
+Tcp::Receive_Return_t Tcp::receive(error_code& ec)
 {
-    auto prom = make_shared<promise<shared_ptr<streambuf>>>();
+    auto prom = make_shared<promise<shared_ptr<string>>>();
     auto fut = prom->get_future();
-    auto response = make_shared<streambuf>();
 
-    async_read(socket, *response, [this, prom, response](const error_code& ec, size_t len)
-        {
-            if (ec)
-            {
-                if (is_disconnect_error(ec))
-                {
-                    handle_disconnect();
-                }
-                else // XXX add more cases for all error codes
-                {
-                    prom->set_exception(ec);
-                }
-            }
-
-            prom->set_value(response);
-        }
+    async_read(socket, receive_data, [this, prom] (const error_code& ec, size_t len)
+               { handle_receive(ec, len, prom); }
     );
 
     return fut;
 }
 
 // XXX untested
-// Receive a specific size.
 Tcp::Receive_Return_t Tcp::receive(size_t size, error_code& ec)
 {
-    auto prom = make_shared<promise<shared_ptr<streambuf>>>();
+    auto prom = make_shared<promise<shared_ptr<string>>>();
     auto fut = prom->get_future();
-    auto response = make_shared<streambuf>(size);
 
-    async_read(socket, *response, [this, prom, response](const error_code& ec, size_t len)
-        {
-            if (ec)
-            {
-                if (is_disconnect_error(ec))
-                {
-                    //XXX self join
-                  handle_disconnect();
-                }
-                else // XXX add more cases for all error codes
-                {
-                    prom->set_exception(ec);
-                }
-            }
-
-            prom->set_value(response);
-        }
+    async_read(socket, receive_data, transfer_exactly(size),
+               [this, prom] (const error_code& ec, size_t len) { handle_receive(ec, len, prom); }
     );
 
     return fut;
@@ -211,26 +188,11 @@ Tcp::Receive_Return_t Tcp::receive(size_t size, error_code& ec)
 // XXX untested
 Tcp::Receive_Return_t Tcp::receive(std::string pattern, error_code& ec)
 {
-    auto prom = make_shared<promise<shared_ptr<streambuf>>>();
+    auto prom = make_shared<promise<shared_ptr<string>>>();
     auto fut = prom->get_future();
-    auto response = make_shared<streambuf>();
 
-    async_read_until(socket, *response, pattern, [this, prom, response](const error_code& ec, size_t len)
-        {
-            if (ec)
-            {
-                if (is_disconnect_error(ec))
-                {
-                    handle_disconnect();
-                }
-                else // XXX add more cases for all error codes
-                {
-                    prom->set_exception(ec);
-                }
-            }
-
-            prom->set_value(response);
-        }
+    async_read_until(socket, receive_data, pattern, [this, prom](const error_code& ec, size_t len)
+                     { handle_receive(ec, len, prom); }
     );
 
     return fut;
@@ -273,4 +235,31 @@ bool Tcp::is_disconnect_error(const error_code& ec)
 void Tcp::handle_disconnect()
 {
     close();
+}
+
+void Tcp::handle_receive(const error_code& ec, size_t length,
+                        shared_ptr<promise<shared_ptr<string>>> prom)
+{
+  Logger::get()->trace("Tcp::handle_receive");
+    if (ec)
+    {
+        if (is_disconnect_error(ec))
+        {
+            // XXX self join error?
+            handle_disconnect();
+        }
+        else // XXX add more cases for all error codes
+        {
+            prom->set_exception(ec);
+        }
+    }
+
+    // Copy data out of input sequence
+    istream is(&receive_data);
+    auto res = make_shared<string>();
+    is >> *res; // XXX will this work with binary data?
+
+    Logger::get()->trace("Tcp::handle_receive length: {} message: '{}'", length, *res);
+
+    prom->set_value(res);
 }

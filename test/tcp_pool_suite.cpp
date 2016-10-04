@@ -24,7 +24,7 @@ static const char* port_str = "9008";
 struct A_Tcp_Pool_Connected_To_Local_Server
 {
     A_Tcp_Pool_Connected_To_Local_Server()
-        : s(Tcp_Server::Role_t::Passive, port_int),
+        : s(Tcp_Server::Role_t::Echo, port_int),
         tcp_pool(Tcp_Pool::create("localhost", port_str, milliseconds(10)))
     {}
 

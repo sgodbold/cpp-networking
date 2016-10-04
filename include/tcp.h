@@ -4,6 +4,7 @@
 #include "io_service_manager.h"
 #include "logger.h"
 
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -18,7 +19,7 @@ class Tcp
 {
     public:
         using Send_Return_t = boost::future<size_t>;
-        using Receive_Return_t = boost::future<std::shared_ptr<boost::asio::streambuf>>;
+        using Receive_Return_t = boost::future<std::shared_ptr<std::string>>;
 
         enum class Status_t
         {
@@ -77,10 +78,29 @@ class Tcp
 
         void handle_disconnect();
 
+        void handle_receive(const boost::system::error_code& ec, size_t length,
+                            std::shared_ptr<boost::promise<std::shared_ptr<std::string>>> prom);
+
         Status_t connection_status;
         Io_Service_Manager io_service;
 
         boost::asio::ip::tcp::socket socket;
+
+        /* Common receive buffer rational:
+         * 
+         * Problem:
+         * All forms of receive operations must be called using the same buffer. This is necessary
+         * because the different read variants (error, pattern, size) are all implemented using
+         * async_read_some. This implementation reads in chunks at a time, and if a delimeter or
+         * size limit occurs in that chunk THEN it stops, after having already read data past it.
+         *
+         * Solution:
+         * Receiving on one buffer solves this. Read data past where the previous receive function
+         * returned still exists in the buffer. That data is consumed first then more data is read
+         * in from the socket.
+         *
+         */
+        boost::asio::streambuf receive_data;
 
 }; // Tcp
 
