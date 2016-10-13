@@ -45,12 +45,18 @@ int main(int argc, char* argv[]) {
             auto res_fut = client.receive("\n", ec);
 
             // Convert response buffer to string
+            /*
             shared_ptr<streambuf> res_buf = res_fut.get();
             Logger::get()->info("Received {} bytes", res_buf->size());
             std::ostringstream ss;
             ss << res_buf;
+            */
 
-            cout << "Recv: " << ss.str();
+            auto res = res_fut.get();
+
+            Logger::get()->info("Received {} bytes", res->size());
+
+            cout << "Recv: " << *res;
         }
     }
     catch (std::exception& e) {

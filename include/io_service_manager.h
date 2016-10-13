@@ -68,6 +68,9 @@ class Io_Service_Manager
         boost::asio::io_service& get()
             { return io_service; }
 
+        boost::asio::io_service::strand create_strand()
+        { return boost::asio::io_service::strand(io_service); }
+
         bool is_running()
             { return state == State_t::Running; }
 

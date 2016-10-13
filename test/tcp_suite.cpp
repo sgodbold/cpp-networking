@@ -139,6 +139,7 @@ BOOST_AUTO_TEST_SUITE( tcp_suite )
             Tcp::Receive_Return_t recv_fut;
             shared_ptr<string> response;
 
+/* XXX how do I trigger an error from the server?
             BOOST_AUTO_TEST_CASE( check_receive_until_error )
             {
                 sent_size = client.send(send_string, send_ec).get();
@@ -153,6 +154,7 @@ BOOST_AUTO_TEST_SUITE( tcp_suite )
                 // Receive correct data
                 BOOST_TEST( (*response == send_string) );
             }
+*/
 
             BOOST_AUTO_TEST_CASE( check_receive_size )
             {
@@ -169,9 +171,6 @@ BOOST_AUTO_TEST_SUITE( tcp_suite )
 
                 // Receive correct data
                 BOOST_TEST( (*response == send_string.substr(0, receive_size)) );
-                // BOOST_TEST( (response->c_str() == "hello") );
-                std::cout << "res len = " << response->size() << std::endl;
-                std::cout << "substr = " << send_string.substr(0, receive_size) << std::endl;
             }
 
             BOOST_AUTO_TEST_CASE( check_receive_string_pattern )

@@ -1,8 +1,9 @@
 #include "tcp.h"
 #include "logger.h"
 
+#include <algorithm>        // copy
 #include <functional>
-#include <istream>
+#include <iterator>         // back_inserter
 #include <memory>
 #include <string>
 #include <vector>
@@ -11,28 +12,26 @@
 #include <boost/asio.hpp>
 #include <boost/thread/future.hpp>
 
+using boost::future;
+using boost::promise;
 using boost::asio::async_read;
 using boost::asio::async_read_until;
 using boost::asio::async_write;
 using boost::asio::buffer;
+using boost::asio::buffers_begin;
 using boost::asio::const_buffer;
 using boost::asio::streambuf;
 using boost::asio::transfer_exactly;
-using boost::future;
-using boost::promise;
 using boost::system::error_code;
 using boost::system::system_error;
 
 using net::Tcp;
 
-using std::bind;
-using std::istream;
+using std::copy;
 using std::shared_ptr;
 using std::make_shared;
 using std::move;
-using std::mutex;
 using std::string;
-using std::unique_lock;
 using std::vector;
 
 namespace ph = std::placeholders;
@@ -41,7 +40,9 @@ namespace ph = std::placeholders;
 Tcp::Tcp(const std::string& host, const std::string& service)
     : connection_status(Status_t::Connecting),
       io_service(Io_Service_Manager::Behavior_t::Perpetual),
-      socket(io_service.get())
+      socket(io_service.get()),
+      async_receive_strand(io_service.create_strand()),
+      async_receive_handle_strand(io_service.create_strand())
 {
     connect(host, service);
 }
@@ -164,36 +165,62 @@ Tcp::Receive_Return_t Tcp::receive(error_code& ec)
 {
     auto prom = make_shared<promise<shared_ptr<string>>>();
     auto fut = prom->get_future();
+    auto receive_callback = [this, prom] (const error_code& ec, size_t len)
+         { handle_receive(ec, len, prom); };
 
-    async_read(socket, receive_data, [this, prom] (const error_code& ec, size_t len)
-               { handle_receive(ec, len, prom); }
+    async_receive_strand.post([this, receive_callback] ()
+        { async_read(socket, receive_data, receive_callback); }
     );
 
     return fut;
 }
 
-// XXX untested
 Tcp::Receive_Return_t Tcp::receive(size_t size, error_code& ec)
 {
     auto prom = make_shared<promise<shared_ptr<string>>>();
     auto fut = prom->get_future();
+    auto receive_callback = [this, prom] (const error_code& ec, size_t len)
+        { handle_receive(ec, len, prom); };
 
-    async_read(socket, receive_data, transfer_exactly(size),
-               [this, prom] (const error_code& ec, size_t len) { handle_receive(ec, len, prom); }
+    async_receive_strand.post([this, size, receive_callback] ()
+        {
+            async_read(socket, receive_data, transfer_exactly(size),
+                       receive_callback);
+        }
     );
 
     return fut;
 }
 
-// XXX untested
 Tcp::Receive_Return_t Tcp::receive(std::string pattern, error_code& ec)
+{
+    /*
+    auto prom = make_shared<promise<shared_ptr<string>>>();
+    auto fut = prom->get_future();
+    auto receive_callback = [this, prom] (const error_code& ec, size_t len)
+        { handle_receive(ec, len, prom); };
+
+    async_receive_strand.post([this, pattern, receive_callback] ()
+            { async_read_until(socket, receive_data, pattern, receive_callback); }
+    );
+    */
+
+    // return fut;
+    
+    return receive_impl([this, pattern](Receive_Callback_t callback)
+                        { async_read_until(socket, receive_data, pattern, callback); }
+    );
+}
+
+Tcp::Receive_Return_t Tcp::receive_impl(std::function<void(Receive_Callback_t)> recv_fn)
 {
     auto prom = make_shared<promise<shared_ptr<string>>>();
     auto fut = prom->get_future();
 
-    async_read_until(socket, receive_data, pattern, [this, prom](const error_code& ec, size_t len)
-                     { handle_receive(ec, len, prom); }
-    );
+    auto recv_callback = [this, prom] (const error_code& ec, size_t len)
+        { handle_receive(ec, len, prom); };
+
+    async_receive_strand.post(bind(recv_fn, recv_callback));
 
     return fut;
 }
@@ -237,10 +264,8 @@ void Tcp::handle_disconnect()
     close();
 }
 
-void Tcp::handle_receive(const error_code& ec, size_t length,
-                        shared_ptr<promise<shared_ptr<string>>> prom)
+void Tcp::handle_receive(const error_code& ec, size_t length, Receive_Prom_t prom)
 {
-  Logger::get()->trace("Tcp::handle_receive");
     if (ec)
     {
         if (is_disconnect_error(ec))
@@ -254,12 +279,27 @@ void Tcp::handle_receive(const error_code& ec, size_t length,
         }
     }
 
-    // Copy data out of input sequence
-    istream is(&receive_data);
+    shared_ptr<string> response = consume_receive_data(length);
+
+    prom->set_value(response);
+}
+
+shared_ptr<string> Tcp::consume_receive_data(size_t length)
+{
+    Logger::get()->trace("Tcp::handle_receive pre-read buffer size: {}", receive_data.size());
+
     auto res = make_shared<string>();
-    is >> *res; // XXX will this work with binary data?
+    res->reserve(length);
 
-    Logger::get()->trace("Tcp::handle_receive length: {} message: '{}'", length, *res);
+    // Retrieve socket input buffers and copy data into the return string.
+    // Once copy is done remove the data from the socket buffer.
+    auto recv_bufs = receive_data.data();
+    std::copy(boost::asio::buffers_begin(recv_bufs),
+              boost::asio::buffers_begin(recv_bufs) + length,
+              std::back_inserter(*res));
+    receive_data.consume(length);
 
-    prom->set_value(res);
+    Logger::get()->trace("Tcp::handle_receive post-read buffer size: {}", receive_data.size());
+
+    return res;
 }
