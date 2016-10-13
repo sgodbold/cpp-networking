@@ -13,7 +13,6 @@ Allow filtering out logs from specific classes
 
 /* Tcp */
 Investigate asynchronous connect / disconnect
-Test recieve functions
 Handle error codes [server disconnections]
 Investigate switching to a state pattern
 

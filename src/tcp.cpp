@@ -36,10 +36,10 @@ using std::vector;
 
 // Starts connection with the server host
 Tcp::Tcp(const std::string& host, const std::string& service)
-    : connection_status(Status_t::Connecting),
-      io_service(Io_Service_Manager::Behavior_t::Perpetual),
+    : io_service(Io_Service_Manager::Behavior_t::Perpetual),
       socket(io_service.get()),
-      socket_rw_strand(io_service.create_strand())
+      socket_rw_strand(io_service.create_strand()),
+      connection_status(Status_t::Connecting)
 {
     connect(host, service);
 }

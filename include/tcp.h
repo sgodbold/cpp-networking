@@ -109,11 +109,10 @@ class Tcp
          *
          */
         boost::asio::streambuf receive_data;
-        boost::asio::io_service::strand socket_rw_strand;
-
-        Status_t connection_status;
         Io_Service_Manager io_service;
         boost::asio::ip::tcp::socket socket;
+        boost::asio::io_service::strand socket_rw_strand;
+        Status_t connection_status;
 
 }; // Tcp
 
