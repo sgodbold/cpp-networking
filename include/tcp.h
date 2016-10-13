@@ -70,27 +70,29 @@ class Tcp
         Receive_Return_t receive(std::string pattern, boost::system::error_code&);
 
     private:
+        using Send_Prom_t = std::shared_ptr<boost::promise<size_t>>;
         using Receive_Prom_t = std::shared_ptr<boost::promise<std::shared_ptr<std::string>>>;
+        using Send_Callback_t = std::function<void(const boost::system::error_code&, size_t)>;
         using Receive_Callback_t = std::function<void(const boost::system::error_code&, size_t)>;
+
         // XXX blocking
         void connect(const std::string& host, const std::string& service);
 
-        bool is_disconnect_error(const boost::system::error_code& ec);
-
+        // Post a send / receive function to socket_rw_strand. The passed in function must
+        // accept a Send/Receive_Callback_t. The callback is used to return socket data
+        // back to the future given to the caller.
+        Send_Return_t post_send_to_strand(std::function<void(Send_Callback_t)> send_fn);
+        Receive_Return_t post_recv_to_strand(std::function<void(Receive_Callback_t)> recv_fn);
+        
+        void handle_send(const boost::system::error_code& ec, size_t length, Send_Prom_t prom);
+        void handle_receive(const boost::system::error_code& ec, size_t length, Receive_Prom_t prom);
         void handle_disconnect();
 
-        Receive_Return_t receive_impl(std::function<void(Receive_Callback_t)> recv_fn);
-        
-        void handle_receive(const boost::system::error_code& ec, size_t length, Receive_Prom_t prom);
+        bool is_disconnect_error(const boost::system::error_code& ec);
 
         // Reads length bytes from receive_data into a string. Only call this in an async_read
         // callback when you can guaruntee that length data is in the buffer.
         std::shared_ptr<std::string> consume_receive_data(size_t length);
-
-        Status_t connection_status;
-        Io_Service_Manager io_service;
-
-        boost::asio::ip::tcp::socket socket;
 
         /* Common receive buffer rational:
          * 
@@ -107,8 +109,11 @@ class Tcp
          *
          */
         boost::asio::streambuf receive_data;
-        boost::asio::io_service::strand async_receive_strand;
-        boost::asio::io_service::strand async_receive_handle_strand;
+        boost::asio::io_service::strand socket_rw_strand;
+
+        Status_t connection_status;
+        Io_Service_Manager io_service;
+        boost::asio::ip::tcp::socket socket;
 
 }; // Tcp
 
