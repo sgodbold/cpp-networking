@@ -43,19 +43,16 @@ int main(int argc, char* argv[]) {
             if(input == "quit") { break; }
             input += "\r\n";
 
-            // Send / receive the message
+            // Send message
             const_buffer send_buf(buffer(input));
             auto send_fut = client->send(send_buf, ec);
             cout << "Sent " << send_fut.get() << " bytes" << endl;
+
+            // Receive response
             auto res_fut = client->receive("\n", ec);
-
-            // Convert response buffer to string
-            shared_ptr<streambuf> res_buf = res_fut.get();
-            cout << "Received " << res_buf->size() << " bytes" << endl;
-            std::ostringstream ss;
-            ss << res_buf;
-
-            cout << "Recv: " << ss.str();
+            shared_ptr<string> res = res_fut.get();
+            cout << "Received " << res->size() << " bytes" << endl;
+            cout << "Recv: " << *res;
         }
     }
     catch (std::exception& e) {

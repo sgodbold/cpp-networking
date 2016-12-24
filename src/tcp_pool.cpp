@@ -138,7 +138,8 @@ Tcp_Pool::Tcp_Guard::Tcp_Guard(std::unique_ptr<Tcp>&& tcp_client_,
 Tcp_Pool::Tcp_Guard::~Tcp_Guard()
 {
     auto sp = tcp_client_owner.lock();
-    if (sp and tcp_client->status() == Tcp::Status_t::Open)
+    // XXX if (sp and tcp_client->status() == Tcp::Status_t::Open)
+    if (sp and tcp_client->is_open())
     {
         Logger::get()->debug("Tcp_Pool: putting connection back in the pool");
         sp->put_connection(move(tcp_client));

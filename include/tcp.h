@@ -34,9 +34,6 @@ class Tcp
         // XXX blocking
         ~Tcp();
 
-        // XXX replace with specific state checks
-        Status_t status() { return connection_status; }
-
         bool is_open();
 
         void close();

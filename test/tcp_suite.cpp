@@ -3,7 +3,6 @@
 #include "tcp.h"
 #include "servers/tcp_server.h"
 
-#include <sstream>
 #include <memory>
 
 #include "boost_config.h"
@@ -14,20 +13,17 @@
 using boost::future;
 using boost::asio::buffer;
 using boost::asio::const_buffer;
-using boost::asio::streambuf;
 using boost::system::error_code;
 
 using net::Tcp;
 using net::Tcp_Server;
 
-using std::ostringstream;
 using std::shared_ptr;
 using std::string;
 
 static const int port_int = 9043;
 static const char* port_str = "9043";
 
-// Test Fixtures
 struct A_Running_Tcp_Echo_Server
 {
     A_Running_Tcp_Echo_Server() : s(Tcp_Server::Role_t::Echo, port_int)
@@ -56,14 +52,13 @@ BOOST_AUTO_TEST_SUITE( tcp_suite )
 
     BOOST_FIXTURE_TEST_CASE( check_client_can_connect, A_Connected_Tcp_Client )
     {
-        BOOST_TEST( (client.status() == Tcp::Status_t::Open) );
+        BOOST_TEST( client.is_open() );
     }
 
     BOOST_FIXTURE_TEST_CASE( check_client_can_disconnect, A_Connected_Tcp_Client )
     {
         client.close();
-
-        BOOST_TEST( (client.status() == Tcp::Status_t::Closed) );
+        BOOST_TEST( !client.is_open() );
     }
 
 /*
