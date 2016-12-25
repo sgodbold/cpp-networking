@@ -28,136 +28,93 @@ using std::vector;
 
 // Given a buffer with HTTP response data this returns a single line
 // stipped of the ending \r\n.
-static string get_response_line(string& data);
+static string get_response_line(string& data)
+{
+    return http_version_c ;
+}
 
 // Use same buffer for empty contents in requests and responses.
 static const_buffer no_body;
 
-Http::Http(const string& host_)
-    : tcp_client(host_, "http"), host(host_), http_version(http_version_)
-{
-    // Request that the server closes the socket after sending a response.
-    // XXX from RFC 7230 Section 6.1:
-    // "The "close" connection option is defined for a sender to signal that
-    //  this connection will be closed after completion of the response."
-    // So this should not be used in every request otherwise the connection is
-    // closed after every request
-    add_header("Connection", "close");
-}
+Http::Http(const string& host_, const string& service_)
+    : host(host_),
+      service(service_),
+      http_version(http_version_c),
+      tcp_pool(Tcp_Pool::create(host_, service_, default_timeout_c))
+{}
 
-// XXX now that sends / receives are asynchronous all requests / responses must be atomically
-// paired up. 1 thread can't process multiple responses from the same socket. Maybe have a 
-// queue for 1 socket or connect a new socket for every request?
-//
-// NOTE: sockets are only file descriptors and cost a little ram. A new socket for each
-// request might not be a bad solution.
-future<Http_Response> Http::request(const std::string& method, const std::string& path,
+Http::Http(const string& host_)
+    : Http(host_, http_service_c)
+{}
+
+future<Http_Response> Http::request(const std::string& method, const std::string& url,
                                     const_buffer& body)
 {
     boost::promise<Http_Response> prom;
     future<Http_Response> fut = prom.get_future();
-
-    const_buffer req = make_request(method, path);
-
-    std::vector<const_buffer> req_sequence;
-    req_sequence.push_back(req);
-    req_sequence.push_back(body);
-
-    // Send request then receive response then notify the returned future.
-    error_code send_ec;
-    tcp_client.send(req, send_ec).then([&](future<size_t> f) -> void {
-        /*size_t len = */f.get();
-
-        if (send_ec)
-        {
-            // receive error response / clear socket buffer?
-        }
-
-        /* XXX won't compile
-        error_code recv_ec;
-        tcp_client.receive(recv_ec).then([&](future<string> f) -> void {
-            string data = f.get();
-            
-            if (recv_ec)
-            {
-                // XXX
-            }
-            
-            Http_Response res = make_response(data);
-
-            // Signal caller that the request is done.
-            prom.set_value(res);
-
-            return;
-        });
-        */
-    });
-
     return fut;
 }
 
-future<Http_Response> Http::get(const string& path)
+future<Http_Response> Http::get(const string& url)
 {
-    return request("GET", path, no_body);
+    return request("GET", url, no_body);
     // XXX cache response?
 }
 
-future<Http_Response> Http::head(const string& path)
+future<Http_Response> Http::head(const string& url)
 {
-    return request("HEAD", path, no_body);
+    return request("HEAD", url, no_body);
     // XXX cache response?
 }
 
-future<Http_Response> Http::post(const string& path, const_buffer& body)
+future<Http_Response> Http::post(const string& url, const_buffer& body)
 {
-    return request("POST", path, body);
+    return request("POST", url, body);
     // XXX cache response?
 }
 
-future<Http_Response> Http::put(const string& path, const_buffer& body)
+future<Http_Response> Http::put(const string& url, const_buffer& body)
 {
-    return request("PUT", path, body);
+    return request("PUT", url, body);
 }
 
-future<Http_Response> Http::delet(const string& path)
+future<Http_Response> Http::delet(const string& url)
 {
-    return request("DELETE", path, no_body);
+    return request("DELETE", url, no_body);
 }
 
-future<Http_Response> Http::trace(const string& path)
+future<Http_Response> Http::trace(const string& url)
 {
-    return request("TRACE", path, no_body);
+    return request("TRACE", url, no_body);
 }
 
-future<Http_Response> Http::options(const string& path)
+future<Http_Response> Http::options(const string& url)
 {
-    return request("OPTIONS", path, no_body);
+    return request("OPTIONS", url, no_body);
 }
 
-future<Http_Response> Http::connect(const string& path, const_buffer& body)
+future<Http_Response> Http::connect(const string& url, const_buffer& body)
 {
-    return request("CONNECT", path, body);
+    return request("CONNECT", url, body);
 }
 
-future<Http_Response> Http::patch(const string& path, const_buffer& body)
+future<Http_Response> Http::patch(const string& url, const_buffer& body)
 {
-    return request("PATCH", path, body);
+    return request("PATCH", url, body);
     // XXX cache response?
 }
 
-/* Private */
-
-// Formats an HTTP message including the given method, path, and any set headers.
-const_buffer Http::make_request(const std::string& method, const std::string& path)
+const_buffer Http::make_request(const std::string& method, const std::string& url)
 {
     streambuf req;
     std::ostream request_stream(&req);
 
     // Method
-    request_stream << method << " " << path << " " << http_version << "\r\n";
+    request_stream << method << " " << url << " " << http_version << "\r\n";
 
     // Headers
-    for (auto& h : headers) {
+    for (auto& h : headers)
+    {
         request_stream << h.first << ": " << h.second << "\r\n";
     }
 
@@ -176,7 +133,8 @@ Http_Response Http::make_response(string& data)
 
     // Headers
     string line;
-    while (true) {
+    while (true)
+    {
         line = get_response_line(data);
         if (line.empty())
         {
@@ -201,27 +159,4 @@ Http_Response Http::make_response(string& data)
     // res.body = data;
 
     return res;
-}
-
-/* Helpers */
-
-// Given a buffer with HTTP response data this returns a single line
-// stipped of the ending \r\n.
-string get_response_line(string& data)
-{
-    /* XXX won't compile
-    streambuf buf;
-    size_t n = read_until(data, buf, "\r\n");
-    buf.commit(n);
-    std::istream is(&buf);
-
-    string result;
-    is >> result;
-
-    // strip the ending \r\n
-    result.pop_back();
-    result.pop_back();
-
-    return result;
-    */
 }

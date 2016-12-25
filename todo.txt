@@ -15,6 +15,7 @@ Allow filtering out logs from specific classes
 Investigate asynchronous connect / disconnect
 Handle error codes [server disconnections]
 Investigate switching to a state pattern
+Different strands for send and recv
 
 /* Io_Service_Manager */
 Implement default behavior

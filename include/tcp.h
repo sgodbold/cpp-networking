@@ -20,14 +20,6 @@ class Tcp
         using Send_Return_t = boost::future<size_t>;
         using Receive_Return_t = boost::future<std::shared_ptr<std::string>>;
 
-        enum class Status_t
-        {
-            Connecting,
-            Open,
-            Closed,
-            Bad,
-        };
-
         // XXX blocking
         explicit Tcp(const std::string& host, const std::string& service);
 
@@ -42,13 +34,13 @@ class Tcp
          *
          * All send operations are asynchronous and immediately return a future containing size sent.
          *
-         * Make sure that the data being sent will continue to exist as long as
-         * the operation continues.
+         * Make sure data being sent will continue to exist until the operation finishes.
          *
          * TODO: test error codes
+         * TODO: send fns that throw errors
          */
-        Send_Return_t send(boost::asio::const_buffer&, boost::system::error_code&);
-        Send_Return_t send(std::vector<boost::asio::const_buffer>&, boost::system::error_code&);
+        Send_Return_t send(const boost::asio::const_buffer&, boost::system::error_code&);
+        Send_Return_t send(const std::vector<boost::asio::const_buffer>&, boost::system::error_code&);
         Send_Return_t send(const std::string&, boost::system::error_code&);
         Send_Return_t send(const int, boost::system::error_code&);
 
@@ -58,9 +50,10 @@ class Tcp
          *
          * There are 3 core receive operations:
          * 1. Receive until an error occurs (such as EOF)
-         * 2. Recieve a length of data
-         * 3. Recieve until a pattern
+         * 2. Receive a length of data
+         * 3. Receive until a pattern
          *
+         * TODO: recv fns that throw errors
          */
         Receive_Return_t receive(boost::system::error_code&);
         Receive_Return_t receive(size_t size, boost::system::error_code&);
@@ -71,6 +64,14 @@ class Tcp
         using Receive_Prom_t = std::shared_ptr<boost::promise<std::shared_ptr<std::string>>>;
         using Send_Callback_t = std::function<void(const boost::system::error_code&, size_t)>;
         using Receive_Callback_t = std::function<void(const boost::system::error_code&, size_t)>;
+
+        enum class Status_t
+        {
+            Connecting,
+            Open,
+            Closed,
+            Bad,
+        };
 
         // XXX blocking
         void connect(const std::string& host, const std::string& service);

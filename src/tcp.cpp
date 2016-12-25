@@ -29,8 +29,8 @@ using boost::system::system_error;
 using net::Tcp;
 
 using std::copy;
-using std::shared_ptr;
 using std::make_shared;
+using std::shared_ptr;
 using std::string;
 using std::vector;
 
@@ -81,7 +81,7 @@ void Tcp::close()
     connection_status = Status_t::Closed;
 }
 
-Tcp::Send_Return_t Tcp::send(const_buffer& data, error_code& ec)
+Tcp::Send_Return_t Tcp::send(const const_buffer& data, error_code& ec)
 {
     auto send_buffer_fn = [this, data] (Send_Callback_t callback)
     {
@@ -91,23 +91,23 @@ Tcp::Send_Return_t Tcp::send(const_buffer& data, error_code& ec)
     return post_send_to_strand(send_buffer_fn);
 }
 
-Tcp::Send_Return_t Tcp::send(vector<const_buffer>& data, error_code& ec)
+Tcp::Send_Return_t Tcp::send(const vector<const_buffer>& data, error_code& ec)
 {
     auto send_buffers_fn = [this, data] (Send_Callback_t callback)
-        { async_write(socket, data, callback); };
+    {
+        async_write(socket, data, callback);
+    };
     return post_send_to_strand(send_buffers_fn);
 }
 
 Tcp::Send_Return_t Tcp::send(const string& str, error_code& ec)
 {
-    // XXX don't send data that lives on the stack!
     const_buffer send_buf(buffer(str));
     return send(send_buf, ec);
 }
 
 Tcp::Send_Return_t Tcp::send(const int number, error_code& ec)
 {
-    // XXX don't send data that lives on the stack!
     string val = std::to_string(number);
     const_buffer send_buf(buffer(val));
     return send(send_buf, ec);
@@ -249,7 +249,6 @@ void Tcp::connect(const string& host, const string& service)
     if (error)
     {
         Logger::get()->info("TCP connection failed: {}", error.message());
-
         connection_status = Status_t::Bad;
         throw system_error(error);
     }
