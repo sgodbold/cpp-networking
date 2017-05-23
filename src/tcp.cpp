@@ -118,8 +118,8 @@ Tcp::Send_Return_t Tcp::post_send_to_strand(std::function<void(Send_Callback_t)>
     auto prom = make_shared<promise<size_t>>();
     auto send_callback = [this, prom] (const error_code& ec, size_t len)
         { handle_send(ec, len, prom); };
-    // XXX Should send_callback execute in a separate strand allowing a thread to recv into socket buff
-    // and a different thread to read from socket buff to string?
+    // XXX Should send_callback execute in a separate strand allowing a thread to recv
+    // into socket buff and a different thread to read from socket buff to string?
     socket_rw_strand.post(bind(send_fn, send_callback));
     return prom->get_future();
 }

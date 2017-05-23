@@ -22,9 +22,8 @@
  * Every connection in the pool has a timer which will disconnect the connection once
  * the time is up. Call the get method to acquire a connection (it may already be in
  * the pool or newly created). All connections taken out of the pool are protected by
- * a guard. Guards safely return a the protected connection to the pool upon destruction.
- * A user of this class only needs to call get() and start using the connection! Everything
- * else is taken care of.
+ * a guard. Guards safely return the protected connection to the pool upon destruction.
+ * A user of this class only needs to call get() and start using the connection.
  *
  * Design:
  * Implemented the named creation design patterns. Instantiation happens through a static

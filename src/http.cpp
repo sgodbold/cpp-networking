@@ -12,6 +12,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/thread/future.hpp>
 
+using boost::asio::buffer;
 using boost::asio::const_buffer;
 using boost::asio::mutable_buffer;
 using boost::asio::read_until;
@@ -26,10 +27,23 @@ using net::Http_Response;
 using std::string;
 using std::vector;
 
+static const char* get_c = "GET";
+static const char* post_c = "POST";
+static const char* head_c = "HEAD";
+static const char* put_c = "PUT";
+static const char* delete_c = "DELETE";
+static const char* trace_c = "TRACE";
+static const char* options_c = "OPTIONS";
+static const char* connect_c = "CONNECT";
+static const char* patch_c = "PATCH";
+
+string create_request_head(const string& method, const string& path);
+
 // Given a buffer with HTTP response data this returns a single line
 // stipped of the ending \r\n.
 static string get_response_line(string& data)
 {
+    // TODO
     return http_version_c ;
 }
 
@@ -47,81 +61,155 @@ Http::Http(const string& host_)
     : Http(host_, http_service_c)
 {}
 
-future<Http_Response> Http::request(const std::string& method, const std::string& url,
-                                    const_buffer& body)
+future<Http_Response> Http::request(const string& method, const string& path, const_buffer& body)
 {
     boost::promise<Http_Response> prom;
     future<Http_Response> fut = prom.get_future();
+
+    auto tcp_client = tcp_pool.get();
+    error_code send_ec;
+    // string request = create_request(method, path);
+
+    // auto send_fut = tcp_client->send(request, send_ec);
+    // send_fut.then([this, tcp_client, send_ec]
+
     return fut;
 }
 
-future<Http_Response> Http::get(const string& url)
+/*
+future<Http_Response> Http::request(const string& method, const string& path, const string& body)
 {
-    return request("GET", url, no_body);
+    auto prom = make_shared<promise<shared_ptr<Http_Request>>>();
+
+    auto tcp_client = tcp_pool.get();
+    error_code ec;
+
+    // XXX Request shouldn't be on stack
+    string request = create_request(method, path);
+    request += body;
+    size_t req_size = request.size();
+
+    tcp_client->send(request, ec).then(
+        [this, tcp_client, ec, req_size] (future<size_t> send_fut)
+    {
+        // Ensure data sent properly
+        size_t sent = send_fut.get();
+
+        if(ec)
+        {
+            // XXX
+        }
+        else
+        {
+            ec.clear();
+        }
+
+        if(sent != request.size())
+        {
+            // XXX
+        }
+
+        // Receive status line
+        return tcp_client->receive("\n", ec);
+    }).then([this, tcp_client, ec] (future<shared_ptr<string> recv_fut)
+    {
+        // Receive status line containing <VERSION> <CODE> <PHRASE>
+        shared_ptr<string> status_line = recv_fut.get();
+    });
+
+    return prom->get_future();
+}
+*/
+
+/*
+future<Http_Response> receive(shared_ptr<Tcp_Guard> tcp_client)
+{
+}
+*/
+
+future<Http_Response> Http::get(const string& path)
+{
+    string req_head = create_request_head(get_c, path);
+    return request("GET", path, no_body);
     // XXX cache response?
 }
 
-future<Http_Response> Http::head(const string& url)
+future<Http_Response> Http::head(const string& path)
 {
-    return request("HEAD", url, no_body);
+    string req_head = create_request_head(head_c, path);
+    return request("HEAD", path, no_body);
     // XXX cache response?
 }
 
-future<Http_Response> Http::post(const string& url, const_buffer& body)
+future<Http_Response> Http::post(const string& path, const_buffer& body)
 {
-    return request("POST", url, body);
+    string req_head = create_request_head(post_c, path);
+    return request("POST", path, body);
     // XXX cache response?
 }
 
-future<Http_Response> Http::put(const string& url, const_buffer& body)
+future<Http_Response> Http::post(const string& path, const string& body)
 {
-    return request("PUT", url, body);
+    string req_head = create_request_head(post_c, path);
+    
+    const_buffer send_buf(buffer(body));
 }
 
-future<Http_Response> Http::delet(const string& url)
+future<Http_Response> Http::put(const string& path, const_buffer& body)
 {
-    return request("DELETE", url, no_body);
+    string req_head = create_request_head(put_c, path);
+    return request("PUT", path, body);
 }
 
-future<Http_Response> Http::trace(const string& url)
+future<Http_Response> Http::delet(const string& path)
 {
-    return request("TRACE", url, no_body);
+    string req_head = create_request_head(delete_c, path);
+    return request("DELETE", path, no_body);
 }
 
-future<Http_Response> Http::options(const string& url)
+future<Http_Response> Http::trace(const string& path)
 {
-    return request("OPTIONS", url, no_body);
+    string req_head = create_request_head(trace_c, path);
+    return request("TRACE", path, no_body);
 }
 
-future<Http_Response> Http::connect(const string& url, const_buffer& body)
+future<Http_Response> Http::options(const string& path)
 {
-    return request("CONNECT", url, body);
+    string req_head = create_request_head(options_c, path);
+    return request("OPTIONS", path, no_body);
 }
 
-future<Http_Response> Http::patch(const string& url, const_buffer& body)
+future<Http_Response> Http::connect(const string& path, const_buffer& body)
 {
-    return request("PATCH", url, body);
+    string req_head = create_request_head(connect_c, path);
+
+    return request("CONNECT", path, body);
+}
+
+future<Http_Response> Http::patch(const string& path, const_buffer& body)
+{
+    string req_head = create_request_head(patch_c, path);
+
+    return request("PATCH", path, body);
     // XXX cache response?
 }
 
-const_buffer Http::make_request(const std::string& method, const std::string& url)
+string Http::create_request_head(const string& method, const string& path)
 {
-    streambuf req;
-    std::ostream request_stream(&req);
-
     // Method
-    request_stream << method << " " << url << " " << http_version << "\r\n";
+    string req = method + " " + path + " " + http_version_c + "\r\n";
 
     // Headers
-    for (auto& h : headers)
+    // XXX does this copy the headers or reference it?
+    for (auto h : headers)
     {
-        request_stream << h.first << ": " << h.second << "\r\n";
+        // req << h.first << ": " << h.second << "\r\n";
     }
 
     // Spacer
-    request_stream << "\r\n";
+    // req << "\r\n";
 
-    return req.data();
+    return req;
 }
 
 Http_Response Http::make_response(string& data)
